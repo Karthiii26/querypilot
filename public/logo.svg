@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="dbGradTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="dbGradMid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="45%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+    <linearGradient id="dbGradBot" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8" />
+      <stop offset="50%" stop-color="#4338ca" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+    <linearGradient id="dbFullGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="25%" stop-color="#0284c7" />
+      <stop offset="60%" stop-color="#3b82f6" />
+      <stop offset="85%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+  </defs>
+
+  <!-- Top Cylinder Cap -->
+  <ellipse cx="256" cy="74" rx="180" ry="58" fill="url(#dbFullGrad)" />
+
+  <!-- Top Layer Body -->
+  <path d="M 76 74 V 170 C 76 215 156 248 256 248 C 356 248 436 215 436 170 V 74 C 436 118 356 150 256 150 C 156 150 76 118 76 74 Z" fill="url(#dbFullGrad)" />
+
+  <!-- Divider 1 (White separator curve) -->
+  <path d="M 76 170 C 76 215 156 248 256 248 C 356 248 436 215 436 170" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" />
+
+  <!-- Middle Layer Body -->
+  <path d="M 76 170 V 290 C 76 335 156 368 256 368 C 356 368 436 335 436 290 V 170 C 436 215 356 248 256 248 C 156 248 76 215 76 170 Z" fill="url(#dbFullGrad)" />
+
+  <!-- Divider 2 (White separator curve) -->
+  <path d="M 76 290 C 76 335 156 368 256 368 C 356 368 436 335 436 290" fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" />
+
+  <!-- Bottom Layer Body -->
+  <path d="M 76 290 V 410 C 76 455 156 488 256 488 C 356 488 436 455 436 410 V 290 C 436 335 356 368 256 368 C 156 368 76 335 76 290 Z" fill="url(#dbFullGrad)" />
+</svg>
