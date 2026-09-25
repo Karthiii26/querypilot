@@ -394,16 +394,6 @@ export class AuthService {
     };
   }
 
-  async getLastLoginEmail(): Promise<string | null> {
-    try {
-      const res = await this.query(
-        'SELECT email FROM app_users WHERE last_login_at IS NOT NULL ORDER BY last_login_at DESC LIMIT 1;'
-      );
-      return res.rows[0]?.email || null;
-    } catch {
-      return null;
-    }
-  }
 
   private async seedDemoUser(): Promise<void> {
     try {

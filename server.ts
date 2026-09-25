@@ -143,14 +143,6 @@ async function startServer() {
     }
   });
 
-  app.get('/api/auth/last-email', async (req, res) => {
-    try {
-      const lastEmail = await authService.getLastLoginEmail();
-      res.json({ lastEmail });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
 
   app.get('/api/auth/preferences', async (req, res) => {
     try {

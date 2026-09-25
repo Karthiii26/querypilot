@@ -22,12 +22,9 @@ export const LoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch('/api/auth/last-email')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.lastEmail) setEmail(data.lastEmail);
-      })
-      .catch(() => {});
+    // Use localStorage so last-used email is device-local only (not shared across devices)
+    const savedEmail = localStorage.getItem('querypilot_last_email');
+    if (savedEmail) setEmail(savedEmail);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

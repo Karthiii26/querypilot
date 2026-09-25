@@ -93,6 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.preferences) {
       setPreferences(data.preferences);
     }
+    // Remember email on this device only (localStorage is browser/device-local)
+    try { localStorage.setItem('querypilot_last_email', email); } catch {}
     setIsNewLogin(true);
   };
 
@@ -114,6 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.preferences) {
       setPreferences(data.preferences);
     }
+    // Remember email on this device only
+    try { localStorage.setItem('querypilot_last_email', email); } catch {}
     setIsNewLogin(true);
   };
 
@@ -125,6 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     setPreferences(defaultPreferences);
+    // Clear the locally remembered email on explicit logout
+    try { localStorage.removeItem('querypilot_last_email'); } catch {}
     try {
       fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     } catch {
