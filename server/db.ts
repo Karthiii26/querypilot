@@ -134,7 +134,10 @@ export class DatabaseService {
       return this._connectPool(userId, supabaseUrl, 'supabase', 'Supabase Cloud PostgreSQL');
     }
 
-    throw new Error('No database connection URL configured.');
+    // No default URL configured — users connect their own Supabase DB via the UI.
+    // This is expected on Render if SUPABASE_DB_URL is not set as an env var.
+    console.warn('[DatabaseService] No SUPABASE_DB_URL or DATABASE_URL configured. Default server pool will remain uninitialized. Users must connect their own Supabase database via the UI.');
+    return { success: false, message: 'No database connection URL configured. Connect via the UI.' };
   }
 
   private async _connectPool(

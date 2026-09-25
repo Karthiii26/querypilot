@@ -14,13 +14,27 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Initialize Database & Auth Services
+  // Initialize Database Service (optional default pool — users can connect their own)
   try {
     await dbService.initialize();
+  } catch (dbErr) {
+    console.warn('[Server] Default database pool not initialized:', dbErr instanceof Error ? dbErr.message : dbErr);
+  }
+
+  // Initialize Auth Service (required for user accounts)
+  try {
     await authService.initialize();
-    await schemaService.discoverSchema(true);
-  } catch (initErr) {
-    console.error('[Server] Database initialization failed:', initErr);
+  } catch (authErr) {
+    console.error('[Server] Auth service initialization failed:', authErr instanceof Error ? authErr.message : authErr);
+  }
+
+  // Discover schema from connected DB (optional — only works if a DB pool is available)
+  try {
+    if (dbService.isConnected()) {
+      await schemaService.discoverSchema(true);
+    }
+  } catch (schemaErr) {
+    console.warn('[Server] Schema discovery skipped:', schemaErr instanceof Error ? schemaErr.message : schemaErr);
   }
 
   // ==========================================
