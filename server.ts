@@ -14,28 +14,35 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Initialize Database Service (optional default pool — users can connect their own)
-  try {
-    await dbService.initialize();
-  } catch (dbErr) {
-    console.warn('[Server] Default database pool not initialized:', dbErr instanceof Error ? dbErr.message : dbErr);
-  }
+  let isBackendReady = false;
 
-  // Initialize Auth Service (required for user accounts)
-  try {
-    await authService.initialize();
-  } catch (authErr) {
-    console.error('[Server] Auth service initialization failed:', authErr instanceof Error ? authErr.message : authErr);
-  }
+  const initializeBackend = async () => {
+    try {
+      try {
+        await dbService.initialize();
+      } catch (dbErr) {
+        console.warn('[Server] Default database pool not initialized:', dbErr instanceof Error ? dbErr.message : dbErr);
+      }
 
-  // Discover schema from connected DB (optional — only works if a DB pool is available)
-  try {
-    if (dbService.isConnected()) {
-      await schemaService.discoverSchema(true);
+      try {
+        await authService.initialize();
+      } catch (authErr) {
+        console.error('[Server] Auth service initialization failed:', authErr instanceof Error ? authErr.message : authErr);
+      }
+
+      try {
+        if (dbService.isConnected()) {
+          await schemaService.discoverSchema(true);
+        }
+      } catch (schemaErr) {
+        console.warn('[Server] Schema discovery skipped:', schemaErr instanceof Error ? schemaErr.message : schemaErr);
+      }
+    } finally {
+      isBackendReady = true;
     }
-  } catch (schemaErr) {
-    console.warn('[Server] Schema discovery skipped:', schemaErr instanceof Error ? schemaErr.message : schemaErr);
-  }
+  };
+
+  initializeBackend();
 
   // ==========================================
   // API ROUTES
@@ -185,7 +192,8 @@ async function startServer() {
     const userId = getAuthUserId(req);
     const connInfo = dbService.getConnectionInfo(userId);
     res.json({
-      status: 'ok',
+      status: isBackendReady ? 'ok' : 'initializing',
+      ready: isBackendReady,
       service: 'QueryPilot',
       environment: process.env.NODE_ENV || 'development',
       adminDatabase: {

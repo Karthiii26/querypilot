@@ -24,6 +24,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { Logo } from './components/Logo';
 import { OnboardingConnectModal } from './components/OnboardingConnectModal';
+import { SplashLoader } from './components/SplashLoader';
 import {
   DatabaseSchemaInfo,
   DatabaseStatus,
@@ -32,6 +33,12 @@ import {
 } from './types';
 
 export default function App() {
+  const [isBackendReady, setIsBackendReady] = useState(false);
+
+  if (!isBackendReady) {
+    return <SplashLoader onReady={() => setIsBackendReady(true)} />;
+  }
+
   return (
     <AuthProvider>
       <AppContent />
