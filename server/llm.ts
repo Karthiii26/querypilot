@@ -68,6 +68,7 @@ export class GeminiLLMProvider implements LLMProvider {
   }
 
   constructor(apiKey: string) {
+    console.log(`[GeminiLLMProvider] Initializing with model: ${process.env.GEMINI_MODEL || 'gemini-2.0-flash'}`);
     this.ai = new GoogleGenAI({
       apiKey,
       httpOptions: {
@@ -76,6 +77,7 @@ export class GeminiLLMProvider implements LLMProvider {
         }
       }
     });
+    console.log('[GeminiLLMProvider] GoogleGenAI client initialized successfully');
   }
 
   async understandQuery(question: string, schemaSummary: string): Promise<QueryUnderstanding> {
@@ -103,6 +105,7 @@ Respond with ONLY valid JSON adhering strictly to this schema:
 
 Important: Set ambiguity to true ONLY when the question has multiple distinctly valid business interpretations that cannot be determined without clarification (e.g. "Who are our best customers?").`;
 
+    console.log(`[GeminiLLMProvider] understandQuery → model=${this.model} question="${question.slice(0, 80)}"`);
     try {
       const response = await withTimeout(
         this.ai.models.generateContent({
@@ -116,7 +119,9 @@ Important: Set ambiguity to true ONLY when the question has multiple distinctly 
       );
 
       const text = response.text || '{}';
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      console.log('[GeminiLLMProvider] understandQuery → success, intent:', parsed.intent);
+      return parsed;
     } catch (err) {
       if (process.env.DISABLE_FALLBACK === 'true') {
         throw err;
@@ -172,6 +177,7 @@ Return ONLY a JSON object:
   "needs_clarification": false
 }`;
 
+    console.log(`[GeminiLLMProvider] generateSql → model=${this.model} dialect=${dialect} question="${question.slice(0, 80)}"`);
     try {
       const response = await withTimeout(
         this.ai.models.generateContent({
@@ -186,7 +192,9 @@ Return ONLY a JSON object:
 
       const text = response.text || '{}';
       const parsed = JSON.parse(text);
-      return cleanGeneratedSqlResponse(parsed);
+      const cleaned = cleanGeneratedSqlResponse(parsed);
+      console.log(`[GeminiLLMProvider] generateSql → success, confidence=${cleaned.confidence}, sql="${cleaned.sql.slice(0, 100)}"`);
+      return cleaned;
     } catch (err) {
       if (process.env.DISABLE_FALLBACK === 'true') {
         throw err;
@@ -237,6 +245,8 @@ Respond with ONLY valid JSON:
   "needs_clarification": false
 }`;
 
+    console.log(`[GeminiLLMProvider] correctSql → model=${this.model} error="${errorMessage.slice(0, 100)}"`);
+    console.log(`[GeminiLLMProvider] correctSql → failedSql="${failedSql.slice(0, 100)}"`);
     try {
       const response = await withTimeout(
         this.ai.models.generateContent({
@@ -250,7 +260,9 @@ Respond with ONLY valid JSON:
       );
 
       const text = response.text || '{}';
-      return cleanGeneratedSqlResponse(JSON.parse(text));
+      const corrected = cleanGeneratedSqlResponse(JSON.parse(text));
+      console.log(`[GeminiLLMProvider] correctSql → success, corrected sql="${corrected.sql.slice(0, 100)}"`);
+      return corrected;
     } catch (err) {
       console.warn('[GeminiLLMProvider] correctSql error:', formatLlmError(err));
       return {
@@ -294,6 +306,7 @@ Return ONLY JSON:
   "interpretation": "Short business takeaway or context"
 }`;
 
+    console.log(`[GeminiLLMProvider] analyzeResults → model=${this.model} rows=${rows.length} question="${question.slice(0, 80)}"`);
     try {
       const response = await withTimeout(
         this.ai.models.generateContent({
@@ -307,7 +320,9 @@ Return ONLY JSON:
       );
 
       const text = response.text || '{}';
-      return JSON.parse(text);
+      const result = JSON.parse(text);
+      console.log(`[GeminiLLMProvider] analyzeResults → success, keyFindings count=${result.keyFindings?.length ?? 0}`);
+      return result;
     } catch (err) {
       if (process.env.DISABLE_FALLBACK === 'true') {
         throw err;
@@ -327,6 +342,7 @@ export class OpenAILLMProvider implements LLMProvider {
   }
 
   private async callChatApi(messages: { role: string; content: string }[]): Promise<string> {
+    console.log(`[OpenAILLMProvider] callChatApi → model=gpt-4o-mini messages=${messages.length}`);
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -343,14 +359,17 @@ export class OpenAILLMProvider implements LLMProvider {
 
     if (!res.ok) {
       const errText = await res.text();
+      console.error(`[OpenAILLMProvider] callChatApi → HTTP ${res.status}:`, errText.slice(0, 200));
       throw new Error(`OpenAI API error (${res.status}): ${errText}`);
     }
 
     const data = await res.json();
+    console.log(`[OpenAILLMProvider] callChatApi → success, usage:`, data.usage);
     return data.choices?.[0]?.message?.content || '{}';
   }
 
   async understandQuery(question: string, schemaSummary: string): Promise<QueryUnderstanding> {
+    console.log(`[OpenAILLMProvider] understandQuery → question="${question.slice(0, 80)}"`);
     try {
       const content = await this.callChatApi([
         {
@@ -362,8 +381,11 @@ export class OpenAILLMProvider implements LLMProvider {
           content: `Schema:\n${schemaSummary}\n\nQuestion: "${question}"`
         }
       ]);
-      return JSON.parse(content);
-    } catch {
+      const parsed = JSON.parse(content);
+      console.log('[OpenAILLMProvider] understandQuery → success, intent:', parsed.intent);
+      return parsed;
+    } catch (err) {
+      console.warn('[OpenAILLMProvider] understandQuery fallback:', err);
       return fallbackUnderstandQuery(question);
     }
   }
@@ -374,6 +396,7 @@ export class OpenAILLMProvider implements LLMProvider {
     retrievedSchemaContext: string,
     dialect: string = 'PostgreSQL'
   ): Promise<GeneratedSqlResponse> {
+    console.log(`[OpenAILLMProvider] generateSql → dialect=${dialect} question="${question.slice(0, 80)}"`);
     try {
       const content = await this.callChatApi([
         {
@@ -385,8 +408,11 @@ export class OpenAILLMProvider implements LLMProvider {
           content: `Context:\n${retrievedSchemaContext}\n\nUnderstanding: ${JSON.stringify(understanding)}\n\nQuestion: "${question}"`
         }
       ]);
-      return cleanGeneratedSqlResponse(JSON.parse(content));
-    } catch {
+      const cleaned = cleanGeneratedSqlResponse(JSON.parse(content));
+      console.log(`[OpenAILLMProvider] generateSql → success, confidence=${cleaned.confidence}`);
+      return cleaned;
+    } catch (err) {
+      console.warn('[OpenAILLMProvider] generateSql fallback:', err);
       return fallbackGenerateSql(question, understanding, retrievedSchemaContext);
     }
   }
@@ -397,6 +423,7 @@ export class OpenAILLMProvider implements LLMProvider {
     errorMessage: string,
     retrievedSchemaContext: string
   ): Promise<GeneratedSqlResponse> {
+    console.log(`[OpenAILLMProvider] correctSql → error="${errorMessage.slice(0, 100)}"`);
     try {
       const content = await this.callChatApi([
         {
@@ -408,8 +435,11 @@ export class OpenAILLMProvider implements LLMProvider {
           content: `Context:\n${retrievedSchemaContext}\n\nQuestion: ${question}\nFailed SQL:\n${failedSql}\nError: ${errorMessage}`
         }
       ]);
-      return cleanGeneratedSqlResponse(JSON.parse(content));
-    } catch {
+      const corrected = cleanGeneratedSqlResponse(JSON.parse(content));
+      console.log(`[OpenAILLMProvider] correctSql → success`);
+      return corrected;
+    } catch (err) {
+      console.warn('[OpenAILLMProvider] correctSql fallback:', err);
       return {
         sql: failedSql,
         explanation: 'Self-correction attempt',
@@ -426,6 +456,7 @@ export class OpenAILLMProvider implements LLMProvider {
     columns: string[],
     rows: Record<string, any>[]
   ): Promise<ResultAnalysisResponse> {
+    console.log(`[OpenAILLMProvider] analyzeResults → rows=${rows.length} question="${question.slice(0, 80)}"`);
     try {
       const content = await this.callChatApi([
         {
@@ -437,8 +468,11 @@ export class OpenAILLMProvider implements LLMProvider {
           content: `Question: ${question}\nSQL: ${sql}\nRows: ${JSON.stringify(rows.slice(0, 10))}`
         }
       ]);
-      return JSON.parse(content);
-    } catch {
+      const result = JSON.parse(content);
+      console.log(`[OpenAILLMProvider] analyzeResults → success`);
+      return result;
+    } catch (err) {
+      console.warn('[OpenAILLMProvider] analyzeResults fallback:', err);
       return fallbackAnalyzeResults(question, rows);
     }
   }
