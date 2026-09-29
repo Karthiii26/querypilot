@@ -137,8 +137,9 @@ async function startServer() {
     try {
       const { email, password, fullName } = req.body || {};
       const session = await authService.register(email, password, fullName);
-      await authService.updateUserPreferences(session.user.id, { lastEmail: email.trim().toLowerCase() });
-      await syncUserDatabaseConnection(session.user);
+      // Fire-and-forget: don't block the response on DB reconnect
+      authService.updateUserPreferences(session.user.id, { lastEmail: email.trim().toLowerCase() }).catch(() => {});
+      syncUserDatabaseConnection(session.user).catch(() => {});
       const preferences = await authService.getUserPreferences(session.user.id);
 
       res.setHeader('Set-Cookie', `querypilot_auth_token=${session.token}; Path=/; Max-Age=${72 * 3600}; ${cookieSameSite}`);
@@ -152,12 +153,15 @@ async function startServer() {
     try {
       const { email, password } = req.body || {};
       const session = await authService.login(email, password);
-      await authService.updateUserPreferences(session.user.id, { lastEmail: email.trim().toLowerCase() });
-      await syncUserDatabaseConnection(session.user);
       const preferences = await authService.getUserPreferences(session.user.id);
 
+      // Respond to the user immediately — DB reconnect happens in the background
       res.setHeader('Set-Cookie', `querypilot_auth_token=${session.token}; Path=/; Max-Age=${72 * 3600}; ${cookieSameSite}`);
       res.json({ ...session, preferences: toPublicUserPreferences(preferences) });
+
+      // After response sent: update prefs and reconnect user DB asynchronously
+      authService.updateUserPreferences(session.user.id, { lastEmail: email.trim().toLowerCase() }).catch(() => {});
+      syncUserDatabaseConnection(session.user).catch(() => {});
     } catch (err: any) {
       res.status(401).json({ error: err.message || 'Invalid credentials' });
     }
@@ -177,9 +181,10 @@ async function startServer() {
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
-      await syncUserDatabaseConnection(user);
       const preferences = await authService.getUserPreferences(user.id);
+      // Respond immediately — DB reconnect happens in background
       res.json({ user, token, preferences: toPublicUserPreferences(preferences) });
+      syncUserDatabaseConnection(user).catch(() => {});
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
