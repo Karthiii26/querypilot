@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Send,
@@ -90,6 +90,18 @@ function Dashboard() {
   const [history, setHistory] = useState<QueryPipelineResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [relativeTime, setRelativeTime] = useState('Just now');
+
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Auto scroll to results section when a new response is generated
+  useEffect(() => {
+    if (currentResponse) {
+      const timer = setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [currentResponse]);
 
   // Modals state
   const [isSchemaModalOpen, setIsSchemaModalOpen] = useState(false);
@@ -280,11 +292,14 @@ function Dashboard() {
           />
           <div className="relative w-64 bg-white z-10 shadow-2xl flex flex-col">
             <div className="p-4 flex items-center justify-between border-b border-slate-100">
-              <span className="font-bold text-slate-900">Menu</span>
+              <div className="flex items-center gap-2.5">
+                <Logo className="w-7 h-7 shrink-0 drop-shadow-xs" />
+                <span className="font-bold text-slate-900 text-base tracking-tight">QueryPilot</span>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -408,14 +423,16 @@ function Dashboard() {
                 />
               )}
 
-              {/* Results Section */}
-              <ErrorBoundary inline>
-                <ResultsSection
-                  response={currentResponse}
-                  isLoading={isLoading}
-                  timestampText={relativeTime}
-                />
-              </ErrorBoundary>
+              {/* Results Section with Auto Scroll Target */}
+              <div ref={resultsRef} className="scroll-mt-6">
+                <ErrorBoundary inline>
+                  <ResultsSection
+                    response={currentResponse}
+                    isLoading={isLoading}
+                    timestampText={relativeTime}
+                  />
+                </ErrorBoundary>
+              </div>
             </div>
           )}
 
