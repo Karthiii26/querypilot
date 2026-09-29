@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiFetch } from '../api';
 
 export interface AuthUser {
   id: number;
@@ -49,9 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const res = await fetch('/api/auth/me', {
-          credentials: 'include'
-        });
+        const res = await apiFetch('/api/auth/me');
 
         if (res.ok) {
           const data = await res.json();
@@ -76,10 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await fetch('/api/auth/login', {
+    const res = await apiFetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({ email, password })
     });
 
@@ -99,10 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (email: string, password: string, fullName: string) => {
-    const res = await fetch('/api/auth/register', {
+    const res = await apiFetch('/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({ email, password, fullName })
     });
 
@@ -126,13 +121,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    const currentToken = token;
     setToken(null);
     setUser(null);
     setPreferences(defaultPreferences);
     // Clear the locally remembered email on explicit logout
     try { localStorage.removeItem('querypilot_last_email'); } catch {}
     try {
-      fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+      apiFetch('/api/auth/logout', { method: 'POST' }, currentToken).catch(() => {});
     } catch {
       // ignore
     }
@@ -142,15 +138,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updatePreferences = async (newPrefs: Partial<UserPreferences>): Promise<UserPreferences> => {
     try {
-      const res = await fetch('/api/auth/preferences', {
+      const res = await apiFetch('/api/auth/preferences', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        credentials: 'include',
         body: JSON.stringify(newPrefs)
-      });
+      }, token);
 
       if (res.ok) {
         const data = await res.json();

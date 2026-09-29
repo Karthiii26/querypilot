@@ -53,7 +53,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number = 15000): Promise<T> {
 function formatLlmError(err: any): string {
   const errMsg = err?.message || String(err);
   if (err?.status === 429 || errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
     return `[429 Quota Exceeded] Gemini API limit reached for model '${model}'. (Tip: set GEMINI_MODEL in .env or upgrade API billing plan)`;
   }
   return errMsg;
@@ -64,7 +64,7 @@ export class GeminiLLMProvider implements LLMProvider {
   private ai: GoogleGenAI;
 
   private get model(): string {
-    return process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    return process.env.GEMINI_MODEL || 'gemini-2.0-flash';
   }
 
   constructor(apiKey: string) {

@@ -25,6 +25,7 @@ import { LoginPage } from './components/LoginPage';
 import { Logo } from './components/Logo';
 import { OnboardingConnectModal } from './components/OnboardingConnectModal';
 import { SplashLoader } from './components/SplashLoader';
+import { apiFetch } from './api';
 import {
   DatabaseSchemaInfo,
   DatabaseStatus,
@@ -82,7 +83,7 @@ function Dashboard() {
   const [schema, setSchema] = useState<DatabaseSchemaInfo | null>(null);
   const [isRefreshingSchema, setIsRefreshingSchema] = useState(false);
 
-  const { isNewLogin, resetNewLogin, user: authUser, preferences, updatePreferences } = useAuth();
+  const { isNewLogin, resetNewLogin, user: authUser, token, preferences, updatePreferences } = useAuth();
 
   // Query execution & history state
   const [currentResponse, setCurrentResponse] = useState<QueryPipelineResponse | null>(null);
@@ -107,7 +108,7 @@ function Dashboard() {
 
   const fetchDatabaseStatus = async () => {
     try {
-      const res = await fetch('/api/database/status', { credentials: 'include' });
+      const res = await apiFetch('/api/database/status', {}, token);
       if (res.ok) {
         const data = await res.json();
         setDbStatus(data);
@@ -120,7 +121,7 @@ function Dashboard() {
   const fetchSchema = async (force: boolean = false) => {
     setIsRefreshingSchema(true);
     try {
-      const res = await fetch(`/api/schema?refresh=${force}`, { credentials: 'include' });
+      const res = await apiFetch(`/api/schema?refresh=${force}`, {}, token);
       if (res.ok) {
         const data = await res.json();
         setSchema(data);
@@ -139,12 +140,10 @@ function Dashboard() {
     setInputQuestion(question);
 
     try {
-      const res = await fetch('/api/query', {
+      const res = await apiFetch('/api/query', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ question, clarifiedIntent })
-      });
+      }, token);
 
       if (!res.ok) {
         const errJson = await res.json();
@@ -211,12 +210,10 @@ function Dashboard() {
 
   const handleConnectDb = async (params: string | { projectUrl?: string; password?: string; region?: string; databaseUrl?: string }) => {
     const payload = typeof params === 'string' ? { databaseUrl: params } : params;
-    const res = await fetch('/api/database/connect', {
+    const res = await apiFetch('/api/database/connect', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(payload)
-    });
+    }, token);
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Failed to connect to database');
@@ -231,11 +228,9 @@ function Dashboard() {
   };
 
   const handleResetToDemo = async () => {
-    const res = await fetch('/api/database/restore-default', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
+    const res = await apiFetch('/api/database/restore-default', {
+      method: 'POST'
+    }, token);
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Failed to disconnect database');
@@ -248,12 +243,10 @@ function Dashboard() {
   const handleRunEvaluation = async (): Promise<EvaluationMetricReport> => {
     setIsRunningEvaluation(true);
     try {
-      const res = await fetch('/api/evaluation/run', {
+      const res = await apiFetch('/api/evaluation/run', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({})
-      });
+      }, token);
       if (!res.ok) {
         throw new Error('Benchmark execution failed');
       }

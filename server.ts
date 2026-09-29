@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { authService, toPublicUserPreferences } from './server/auth.js';
@@ -11,6 +12,38 @@ import { schemaService } from './server/schema.js';
 async function startServer() {
   const app = express();
   const PORT = parseInt(process.env.PORT || '3000', 10);
+
+  // Configure CORS for cross-origin frontend support
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.CORS_ORIGIN,
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+    'http://localhost:4173',
+  ].filter(Boolean) as string[];
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, postman, same-origin)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow any onrender.com subdomains
+      if (origin.endsWith('.onrender.com')) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS policy error: Origin ${origin} not allowed`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  }));
 
   app.use(express.json());
 
@@ -47,6 +80,8 @@ async function startServer() {
   // ==========================================
   // API ROUTES
   // ==========================================
+
+  const cookieSameSite = process.env.NODE_ENV === 'production' ? 'SameSite=None; Secure' : 'SameSite=Lax';
 
   function parseCookies(cookieHeader?: string): Record<string, string> {
     const list: Record<string, string> = {};
@@ -106,7 +141,7 @@ async function startServer() {
       await syncUserDatabaseConnection(session.user);
       const preferences = await authService.getUserPreferences(session.user.id);
 
-      res.setHeader('Set-Cookie', `querypilot_auth_token=${session.token}; Path=/; Max-Age=${72 * 3600}; SameSite=Lax`);
+      res.setHeader('Set-Cookie', `querypilot_auth_token=${session.token}; Path=/; Max-Age=${72 * 3600}; ${cookieSameSite}`);
       res.status(201).json({ ...session, preferences: toPublicUserPreferences(preferences) });
     } catch (err: any) {
       res.status(400).json({ error: err.message || 'Registration failed' });
@@ -121,7 +156,7 @@ async function startServer() {
       await syncUserDatabaseConnection(session.user);
       const preferences = await authService.getUserPreferences(session.user.id);
 
-      res.setHeader('Set-Cookie', `querypilot_auth_token=${session.token}; Path=/; Max-Age=${72 * 3600}; SameSite=Lax`);
+      res.setHeader('Set-Cookie', `querypilot_auth_token=${session.token}; Path=/; Max-Age=${72 * 3600}; ${cookieSameSite}`);
       res.json({ ...session, preferences: toPublicUserPreferences(preferences) });
     } catch (err: any) {
       res.status(401).json({ error: err.message || 'Invalid credentials' });

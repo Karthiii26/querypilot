@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { Logo } from './Logo';
+import { getApiUrl } from '../api';
 
 interface SplashLoaderProps {
   onReady: () => void;
@@ -19,11 +20,12 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const res = await fetch('/api/health', {
+      const res = await fetch(getApiUrl('/api/health'), {
         cache: 'no-store',
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'include'
       });
       clearTimeout(timeoutId);
 
@@ -46,11 +48,15 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
   useEffect(() => {
     const timer = setInterval(() => {
       const elapsedSec = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      if (elapsedSec >= 5 && !hasError) {
+      if (elapsedSec < 4) {
+        setStatusText('Starting QueryPilot…');
+      } else if (elapsedSec < 10) {
         setStatusText('Connecting to services…');
-      }
-      // If server takes abnormally long (e.g. over 50 seconds), show retry state
-      if (elapsedSec > 50 && !hasError) {
+      } else if (elapsedSec < 18) {
+        setStatusText('Preparing your workspace…');
+      } else if (elapsedSec <= 45 && !hasError) {
+        setStatusText('Almost ready…');
+      } else if (elapsedSec > 45 && !hasError) {
         setHasError(true);
       }
     }, 1000);

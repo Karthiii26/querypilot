@@ -234,7 +234,7 @@ Respond ONLY with valid JSON matching this schema:
   "clarificationOptions": ["option 1", "option 2"] (REQUIRED if intent is CLARIFICATION)
 }`;
 
-        const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
         const response = await withTimeout(
           this.ai.models.generateContent({
             model: modelName,
@@ -252,7 +252,7 @@ Respond ONLY with valid JSON matching this schema:
         }
       } catch (err) {
         const errMsg = (err as any)?.status === 429 || String(err).includes('429')
-          ? `[429 Quota Exceeded] Gemini API limit reached for model '${process.env.GEMINI_MODEL || 'gemini-2.5-flash'}'.`
+          ? `[429 Quota Exceeded] Gemini API limit reached for model '${process.env.GEMINI_MODEL || 'gemini-2.0-flash'}'.`
           : err;
         console.warn('[IntentRouter] LLM classification fallback to heuristic classification:', errMsg);
       }

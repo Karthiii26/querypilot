@@ -1,14 +1,26 @@
 services:
+  # SERVICE 1: QueryPilot Frontend (Static Site)
+  - type: static
+    name: querypilot-frontend
+    buildCommand: npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+
+  # SERVICE 2: QueryPilot Backend (Web Service)
   - type: web
-    name: querypilot
+    name: querypilot-backend
     env: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
+      - key: FRONTEND_URL
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: SUPABASE_ADMIN_DB_URL
