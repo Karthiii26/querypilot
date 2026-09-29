@@ -20,7 +20,8 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      // Allow up to 20 seconds per check so queued requests during Render cold starts are not prematurely aborted
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
       const res = await fetch(getApiUrl('/api/health'), {
         cache: 'no-store',
@@ -48,15 +49,15 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
   useEffect(() => {
     const timer = setInterval(() => {
       const elapsedSec = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      if (elapsedSec < 4) {
+      if (elapsedSec < 5) {
         setStatusText('Starting QueryPilot…');
-      } else if (elapsedSec < 10) {
+      } else if (elapsedSec < 15) {
         setStatusText('Connecting to services…');
-      } else if (elapsedSec < 18) {
+      } else if (elapsedSec < 30) {
         setStatusText('Preparing your workspace…');
-      } else if (elapsedSec <= 45 && !hasError) {
+      } else if (elapsedSec <= 120 && !hasError) {
         setStatusText('Almost ready…');
-      } else if (elapsedSec > 45 && !hasError) {
+      } else if (elapsedSec > 120 && !hasError) {
         setHasError(true);
       }
     }, 1000);
