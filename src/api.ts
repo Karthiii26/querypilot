@@ -6,7 +6,14 @@
 
 const getBaseUrl = (): string => {
   const url = import.meta.env.VITE_API_URL;
-  if (!url) return '';
+  if (!url) {
+    console.warn(
+      '[QueryPilot] VITE_API_URL is not set. ' +
+      'API requests will use relative paths, which only works when frontend is served by the backend. ' +
+      'If deploying as a Render Static Site, set VITE_API_URL=https://querypilot-8fzz.onrender.com in your Static Site environment variables.'
+    );
+    return '';
+  }
   return url.replace(/\/+$/, '');
 };
 

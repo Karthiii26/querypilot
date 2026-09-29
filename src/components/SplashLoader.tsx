@@ -18,6 +18,13 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
     if (isCheckingRef.current) return;
     isCheckingRef.current = true;
 
+    const healthUrl = getApiUrl('/api/health');
+
+    // Log URL on first attempt so devtools show exactly where we're polling
+    if (attemptCount === 0) {
+      console.log(`[QueryPilot Splash] Polling backend health at: ${healthUrl || '(relative) /api/health'}`);
+    }
+
     try {
       const controller = new AbortController();
       // Allow up to 20 seconds per check so queued requests during Render cold starts are not prematurely aborted
