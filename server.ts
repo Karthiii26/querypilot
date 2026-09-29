@@ -223,7 +223,11 @@ async function startServer() {
     if (userId) {
       await dbService.disconnectUser(userId);
     }
-    res.setHeader('Set-Cookie', 'querypilot_auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax');
+    res.setHeader('Set-Cookie', [
+      `querypilot_auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; ${cookieSameSite}`,
+      'querypilot_auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax',
+      'querypilot_auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Strict'
+    ]);
     res.json({ success: true, message: 'Logged out successfully' });
   });
 

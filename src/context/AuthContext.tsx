@@ -120,17 +120,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return login('karthikesh@querypilot.io', 'QueryPilot2026!');
   };
 
-  const logout = () => {
+  const logout = async () => {
     const currentToken = token;
     setToken(null);
     setUser(null);
     setPreferences(defaultPreferences);
     // Clear the locally remembered email on explicit logout
     try { localStorage.removeItem('querypilot_last_email'); } catch {}
+    // Expire auth cookies directly in browser context
     try {
-      apiFetch('/api/auth/logout', { method: 'POST' }, currentToken).catch(() => {});
-    } catch {
-      // ignore
+      document.cookie = 'querypilot_auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=Lax';
+      document.cookie = 'querypilot_auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; SameSite=None; Secure';
+    } catch {}
+
+    try {
+      await apiFetch('/api/auth/logout', { method: 'POST' }, currentToken);
+    } catch (err) {
+      console.warn('[AuthContext] Logout API call failed:', err);
     }
   };
 
