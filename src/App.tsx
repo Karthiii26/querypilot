@@ -132,12 +132,16 @@ function Dashboard() {
 
   const saveHistoryEntry = async (entry: QueryPipelineResponse) => {
     try {
-      await apiFetch('/api/history', {
+      const res = await apiFetch('/api/history', {
         method: 'POST',
         body: JSON.stringify(entry)
       }, token);
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('[History] Save failed:', res.status, errText);
+      }
     } catch (err) {
-      console.warn('Could not save history entry:', err);
+      console.error('[History] Could not save history entry:', err);
     }
   };
 

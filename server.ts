@@ -424,8 +424,10 @@ async function startServer() {
         .map((r: any) => r.full_response)
         .filter(Boolean);
 
+      console.log(`[History] Loaded ${history.length} entries for user ${verified.userId}`);
       res.json({ history });
     } catch (err: any) {
+      console.error('[History] Failed to load history:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -462,8 +464,10 @@ async function startServer() {
         ]
       );
 
+      console.log(`[History] Saved entry for user ${verified.userId}: "${entry.question?.slice(0, 60)}"`);
       res.json({ success: true });
     } catch (err: any) {
+      console.error('[History] Failed to save history entry:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
