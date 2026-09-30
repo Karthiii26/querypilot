@@ -155,9 +155,13 @@ export class AuthService {
           error_message TEXT,
           full_response JSONB,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-        CREATE INDEX IF NOT EXISTS idx_query_history_user_id ON query_history(user_id);
-        CREATE INDEX IF NOT EXISTS idx_query_history_created_at ON query_history(user_id, created_at DESC);
+        )
+      `);
+      await this.query(`
+        CREATE INDEX IF NOT EXISTS idx_query_history_user_id ON query_history(user_id)
+      `);
+      await this.query(`
+        CREATE INDEX IF NOT EXISTS idx_query_history_created_at ON query_history(user_id, created_at DESC)
       `);
 
       // Seed default demo user if app_users is empty
