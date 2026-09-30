@@ -116,13 +116,28 @@ function Dashboard() {
     setHistory([]);
     setCurrentResponse(null);
     setSchemaRetryCount(0);
+
     fetchDatabaseStatus();
-    fetchSchemaWithRetry(0);
     fetchHistory();
+
+    if (preferences.hasConnectedDb) {
+      fetchSchemaWithRetry(0);
+    } else {
+      setIsRefreshingSchema(false);
+      setSchema(null);
+
+      // Newly registered or logged-in user with no DB connected -> prompt to connect DB cleanly
+      if (isNewLogin) {
+        setReconnectNotice(null);
+        setIsConnectModalOpen(true);
+        resetNewLogin();
+      }
+    }
+
     return () => {
       if (schemaRetryTimerRef.current) clearTimeout(schemaRetryTimerRef.current);
     };
-  }, [authUser?.id]);
+  }, [authUser?.id, preferences.hasConnectedDb]);
 
   const fetchHistory = async () => {
     try {
@@ -176,11 +191,17 @@ function Dashboard() {
   const SCHEMA_RETRY_DELAY_MS = 2000;
 
   /**
-   * Fetches schema with automatic retry on login.
+   * Fetches schema with automatic retry on login for connected databases.
    * On first load (attempt 0..MAX_SCHEMA_RETRIES-1) retries silently.
-   * Only prompts for password after all retries are exhausted.
+   * Only prompts for re-authentication password after all retries on a connected DB are exhausted.
    */
   const fetchSchemaWithRetry = async (attempt: number) => {
+    if (!preferences.hasConnectedDb) {
+      setIsRefreshingSchema(false);
+      setSchema(null);
+      return;
+    }
+
     setIsRefreshingSchema(true);
     const currentAttempt = attempt >= 0 ? attempt + 1 : 1;
     setSchemaRetryCount(currentAttempt);
@@ -210,7 +231,7 @@ function Dashboard() {
         console.warn(`[Schema] Attempt ${currentAttempt} returned empty schema. Retrying in ${SCHEMA_RETRY_DELAY_MS}ms…`, errMsg);
         schemaRetryTimerRef.current = setTimeout(() => fetchSchemaWithRetry(attempt + 1), SCHEMA_RETRY_DELAY_MS);
       } else {
-        // All 5 retries exhausted without getting tables
+        // All retries exhausted on a connected DB (re-authentication needed)
         setIsRefreshingSchema(false);
         if (data) setSchema(data);
         setReconnectNotice('Unable to retrieve database tables automatically after multiple attempts. Please enter your database password to reconnect.');
@@ -229,13 +250,26 @@ function Dashboard() {
     }
   };
 
-  // Manual one-shot refresh (still used by Settings/Schema modal)
+  // Manual one-shot refresh (used by Settings / Schema modal)
   const fetchSchema = async (force: boolean = false) => {
-    await fetchSchemaWithRetry(force ? -2 : -1); // -2 / -1 = no retry, just prompt on fail
+    if (!preferences.hasConnectedDb) {
+      setReconnectNotice(null);
+      setIsConnectModalOpen(true);
+      return;
+    }
+    await fetchSchemaWithRetry(force ? -2 : -1);
   };
 
   const handleExecuteQuery = async (question: string, clarifiedIntent?: string) => {
     if (!question.trim() || isLoading) return;
+
+    // Check if a database is connected before fetching data
+    if (!preferences.hasConnectedDb) {
+      setReconnectNotice(null); // Clean connect mode, NOT re-authentication
+      setIsConnectModalOpen(true);
+      return;
+    }
+
     setIsLoading(true);
     setActiveTab('ask');
     setInputQuestion(question);
@@ -500,8 +534,12 @@ function Dashboard() {
                 isRefreshing={isRefreshingSchema}
                 schemaRetryCount={schemaRetryCount}
                 onSelectQuestion={handleSelectExample}
-                onOpenConnectModal={() => {
-                  setReconnectNotice('Please enter your database password to connect.');
+                onOpenConnectModal={(reauth?: boolean) => {
+                  if (reauth) {
+                    setReconnectNotice('Please enter your database password to reconnect.');
+                  } else {
+                    setReconnectNotice(null);
+                  }
                   setIsConnectModalOpen(true);
                 }}
               />
@@ -549,8 +587,12 @@ function Dashboard() {
               isRefreshing={isRefreshingSchema}
               schemaRetryCount={schemaRetryCount}
               onSelectQuestion={handleSelectExample}
-              onOpenConnectModal={() => {
-                setReconnectNotice('Please enter your database password to connect.');
+              onOpenConnectModal={(reauth?: boolean) => {
+                if (reauth) {
+                  setReconnectNotice('Please enter your database password to reconnect.');
+                } else {
+                  setReconnectNotice(null);
+                }
                 setIsConnectModalOpen(true);
               }}
             />

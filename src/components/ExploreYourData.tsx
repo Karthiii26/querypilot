@@ -19,7 +19,7 @@ interface ExploreYourDataProps {
   isRefreshing: boolean;
   schemaRetryCount?: number;
   onSelectQuestion: (question: string) => void;
-  onOpenConnectModal: () => void;
+  onOpenConnectModal: (reauth?: boolean) => void;
 }
 
 const PALETTE = [
@@ -73,8 +73,8 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
   const { preferences } = useAuth();
   const hasConnectedDb = preferences.hasConnectedDb;
 
-  // 1. Actively fetching / retrying state
-  if (isRefreshing) {
+  // 1. Actively fetching / retrying state (only when DB is connected)
+  if (isRefreshing && hasConnectedDb) {
     return (
       <div className="space-y-3 animate-fade-in">
         <div>
@@ -116,7 +116,7 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
           </p>
           <button
             type="button"
-            onClick={onOpenConnectModal}
+            onClick={() => onOpenConnectModal(false)}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer"
           >
             <Plug className="w-3.5 h-3.5" /> Connect Database
@@ -146,7 +146,7 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
           </p>
           <button
             type="button"
-            onClick={onOpenConnectModal}
+            onClick={() => onOpenConnectModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer shadow-xs"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Enter Password & Reconnect

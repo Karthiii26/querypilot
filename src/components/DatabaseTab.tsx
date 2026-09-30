@@ -16,7 +16,7 @@ interface DatabaseTabProps {
   isRefreshing: boolean;
   schemaRetryCount?: number;
   onSelectQuestion: (q: string) => void;
-  onOpenConnectModal?: () => void;
+  onOpenConnectModal?: (reauth?: boolean) => void;
 }
 
 export const DatabaseTab: React.FC<DatabaseTabProps> = ({
@@ -51,8 +51,8 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
             Browse tables, inspect column schemas, and run quick queries on your connected database.
           </p>
         </div>
-        {/* Auto-fetch spinner — shown while loading */}
-        {isRefreshing && (
+        {/* Auto-fetch spinner — shown while loading connected DB */}
+        {isRefreshing && hasConnectedDb && (
           <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3.5 py-2 rounded-xl shadow-xs">
             <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
             <span>Fetching data from Database...</span>
@@ -75,7 +75,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
           {onOpenConnectModal && (
             <button
               type="button"
-              onClick={onOpenConnectModal}
+              onClick={() => onOpenConnectModal(false)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer"
             >
               <Plug className="w-3.5 h-3.5" /> Connect Database
@@ -106,7 +106,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
           {onOpenConnectModal && (
             <button
               type="button"
-              onClick={onOpenConnectModal}
+              onClick={() => onOpenConnectModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer shadow-xs"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Enter Password & Reconnect

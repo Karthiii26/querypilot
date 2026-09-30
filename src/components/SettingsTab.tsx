@@ -136,13 +136,15 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge connected={hasConnectedDb} />
-            <button
-              type="button"
-              onClick={onOpenConnectModal}
-              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer"
-            >
-              {hasConnectedDb ? 'Switch DB' : 'Connect DB'}
-            </button>
+            {hasConnectedDb && (
+              <button
+                type="button"
+                onClick={onOpenConnectModal}
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer"
+              >
+                Switch DB
+              </button>
+            )}
           </div>
         </div>
 
