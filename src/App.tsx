@@ -80,6 +80,8 @@ function Dashboard() {
   const [dbStatus, setDbStatus] = useState<DatabaseStatus | null>(null);
   const [schema, setSchema] = useState<DatabaseSchemaInfo | null>(null);
   const [isRefreshingSchema, setIsRefreshingSchema] = useState(false);
+  const [schemaRetryCount, setSchemaRetryCount] = useState(0);
+  const schemaRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { isNewLogin, resetNewLogin, user: authUser, token, preferences, updatePreferences } = useAuth();
 
@@ -113,9 +115,13 @@ function Dashboard() {
   useEffect(() => {
     setHistory([]);
     setCurrentResponse(null);
+    setSchemaRetryCount(0);
     fetchDatabaseStatus();
-    fetchSchema(true);
+    fetchSchemaWithRetry(0);
     fetchHistory();
+    return () => {
+      if (schemaRetryTimerRef.current) clearTimeout(schemaRetryTimerRef.current);
+    };
   }, [authUser?.id]);
 
   const fetchHistory = async () => {
@@ -166,27 +172,59 @@ function Dashboard() {
     }
   };
 
-  const fetchSchema = async (force: boolean = false) => {
+  const MAX_SCHEMA_RETRIES = 5;
+  const SCHEMA_RETRY_DELAY_MS = 2500;
+
+  /**
+   * Fetches schema with automatic retry on login.
+   * On first load (attempt 0..MAX_SCHEMA_RETRIES-1) retries silently.
+   * Only prompts for password after all retries are exhausted.
+   * Can also be called manually (attempt = -1) for a forced one-shot refresh.
+   */
+  const fetchSchemaWithRetry = async (attempt: number) => {
     setIsRefreshingSchema(true);
     try {
+      const force = attempt >= 0; // always force on auto-retry
       const res = await apiFetch(`/api/schema?refresh=${force}`, {}, token);
       if (res.ok) {
         const data = await res.json();
         setSchema(data);
+        setSchemaRetryCount(0);
         await fetchDatabaseStatus();
+        return; // success — stop retrying
+      }
+
+      const errJson = await res.json().catch(() => ({}));
+      const errMsg = errJson.error || 'Could not fetch schema.';
+
+      if (attempt >= 0 && attempt < MAX_SCHEMA_RETRIES - 1) {
+        // Silent retry
+        console.warn(`[Schema] Attempt ${attempt + 1} failed, retrying in ${SCHEMA_RETRY_DELAY_MS}ms…`, errMsg);
+        setSchemaRetryCount(attempt + 1);
+        schemaRetryTimerRef.current = setTimeout(() => fetchSchemaWithRetry(attempt + 1), SCHEMA_RETRY_DELAY_MS);
       } else {
-        const errJson = await res.json().catch(() => ({}));
-        const errMsg = errJson.error || 'Could not fetch database schema.';
+        // All retries exhausted — prompt for password
         setReconnectNotice(`${errMsg} Please enter your database password and connect again.`);
         setIsConnectModalOpen(true);
       }
     } catch (err: any) {
-      console.warn('Could not load schema:', err);
-      setReconnectNotice(err.message || 'Database connection lost. Please enter your database password to connect again.');
-      setIsConnectModalOpen(true);
+      const msg = err.message || 'Database connection lost.';
+      if (attempt >= 0 && attempt < MAX_SCHEMA_RETRIES - 1) {
+        console.warn(`[Schema] Attempt ${attempt + 1} error, retrying…`, msg);
+        setSchemaRetryCount(attempt + 1);
+        schemaRetryTimerRef.current = setTimeout(() => fetchSchemaWithRetry(attempt + 1), SCHEMA_RETRY_DELAY_MS);
+      } else {
+        setReconnectNotice(`${msg} Please enter your database password to connect again.`);
+        setIsConnectModalOpen(true);
+      }
     } finally {
       setIsRefreshingSchema(false);
     }
+  };
+
+  // Manual one-shot refresh (still used by Settings/Schema modal)
+  const fetchSchema = async (force: boolean = false) => {
+    await fetchSchemaWithRetry(force ? -2 : -1); // -2 / -1 = no retry, just prompt on fail
   };
 
   const handleExecuteQuery = async (question: string, clarifiedIntent?: string) => {

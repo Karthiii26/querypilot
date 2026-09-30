@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import {
   Database,
-  RefreshCw,
+  Loader2,
   Search,
   Table as TableIcon,
-  Columns as ColumnsIcon,
-  Hash,
   ChevronRight,
   Plug
 } from 'lucide-react';
@@ -22,7 +20,6 @@ interface DatabaseTabProps {
 export const DatabaseTab: React.FC<DatabaseTabProps> = ({
   schema,
   isRefreshing,
-  onRefresh,
   onSelectQuestion
 }) => {
   const { preferences } = useAuth();
@@ -50,22 +47,16 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
             Browse tables, inspect column schemas, and run quick queries on your connected database.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {hasConnectedDb && (
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh Schema
-            </button>
-          )}
-        </div>
+        {/* Auto-fetch spinner — shown while loading, no manual refresh needed */}
+        {isRefreshing && (
+          <div className="flex items-center gap-2 text-xs font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            Fetching schema…
+          </div>
+        )}
       </div>
 
-      {/* Disconnected State Notice */}
+      {/* Disconnected State */}
       {!hasConnectedDb ? (
         <div className="bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 border border-slate-200/80 rounded-2xl p-9 text-center shadow-xs space-y-3">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
@@ -78,27 +69,28 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
             </p>
           </div>
         </div>
+      ) : isRefreshing && !schema ? (
+        /* Actively loading — show a pleasant skeleton state */
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-10 text-center shadow-xs space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto" />
+          <p className="text-sm font-medium text-slate-600">Connecting to your database…</p>
+          <p className="text-xs text-slate-400">This may take a moment on first load.</p>
+        </div>
       ) : (!schema || schema.tables.length === 0) ? (
-        /* Empty Database State Notice (When DB is connected but empty) */
+        /* Connected but empty / still loading */
         <div className="bg-white border border-slate-200/80 rounded-2xl p-8 text-center shadow-xs space-y-3">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
             <Database className="w-6 h-6" />
           </div>
           <h3 className="text-base font-bold text-slate-900">
-            Database connected, but no tables were found.
+            {isRefreshing ? 'Loading schema…' : 'No tables found'}
           </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            Create a table in Supabase and click "Refresh Schema" to discover your schema objects dynamically.
+            {isRefreshing
+              ? 'Fetching your database schema. This usually takes just a few seconds.'
+              : 'No tables were found in your database. Create a table in Supabase — the schema will be fetched automatically.'}
           </p>
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh Schema
-          </button>
+          {isRefreshing && <Loader2 className="w-5 h-5 animate-spin text-indigo-500 mx-auto" />}
         </div>
       ) : (
         /* Tables Explorer */
