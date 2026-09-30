@@ -141,18 +141,18 @@ export class AuthService {
       await this.query(`ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS last_db_password TEXT`);
 
       // Ensure query_history table exists.
-      // Uses ALTER TABLE ADD COLUMN IF NOT EXISTS for every column so that existing
-      // tables created by earlier deploys (which may be missing columns) are patched.
+      // CREATE TABLE with absolute minimum columns, then ALTER TABLE ADD COLUMN IF NOT EXISTS
+      // for every other column — patches any existing table regardless of its current schema.
       try {
         await this.query(`
           CREATE TABLE IF NOT EXISTS query_history (
             id SERIAL PRIMARY KEY,
             user_id INT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
-            question TEXT NOT NULL,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            question TEXT NOT NULL
           )
         `);
-        // Patch any columns missing from earlier deploys
+        // Patch ALL columns — safe to run repeatedly (IF NOT EXISTS is idempotent)
+        await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()`);
         await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS request_id TEXT`);
         await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS generated_sql TEXT`);
         await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS query_intent TEXT`);
