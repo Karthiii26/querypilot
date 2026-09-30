@@ -33,11 +33,81 @@ import {
   QueryPipelineResponse
 } from './types';
 
-export default function App() {
-  const [isBackendReady, setIsBackendReady] = useState(false);
+const ConnectingLoader: React.FC<{ text?: string }> = ({ text = 'Connecting to QueryPilot...' }) => (
+  <div className="min-h-screen bg-[#f8f9fc] bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100 flex flex-col items-center justify-center p-6 text-slate-900 font-sans antialiased animate-fade-in select-none">
+    <div className="flex flex-col items-center gap-5 text-center">
+      <div className="relative flex items-center justify-center">
+        <div className="absolute inset-0 bg-indigo-500/15 rounded-full blur-xl animate-pulse" />
+        <Logo className="w-16 h-16 relative drop-shadow-sm transition-transform duration-500" />
+      </div>
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">QueryPilot</h1>
+        <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-500 pt-1">
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-600 shrink-0" />
+          <span>{text}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
-  if (!isBackendReady) {
-    return <SplashLoader onReady={() => setIsBackendReady(true)} />;
+export default function App() {
+  const [initStage, setInitStage] = useState<'checking' | 'connecting' | 'splash' | 'ready'>('checking');
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkServerHealth = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+        const res = await fetch(getApiUrl('/api/health'), {
+          cache: 'no-store',
+          signal: controller.signal,
+          credentials: 'include'
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'ok' || data.ready === true) {
+            if (!isMounted) return;
+            setInitStage('connecting');
+            setTimeout(() => {
+              if (isMounted) setInitStage('ready');
+            }, 2000);
+            return;
+          }
+        }
+      } catch {
+        // Fallback to splash loader if server cold starting
+      }
+
+      if (isMounted) {
+        setInitStage('splash');
+      }
+    };
+
+    checkServerHealth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSplashReady = () => {
+    setInitStage('connecting');
+    setTimeout(() => {
+      setInitStage('ready');
+    }, 2000);
+  };
+
+  if (initStage === 'checking' || initStage === 'connecting') {
+    return <ConnectingLoader text="Connecting to QueryPilot..." />;
+  }
+
+  if (initStage === 'splash') {
+    return <SplashLoader onReady={handleSplashReady} />;
   }
 
   return (
@@ -51,19 +121,7 @@ function AppContent() {
   const { user, isLoading: isAuthLoading } = useAuth();
 
   if (isAuthLoading) {
-    return (
-      <div className="min-h-screen bg-[#f8f9fc] flex flex-col items-center justify-center text-slate-900 font-sans animate-fade-in">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-pulse">
-            <Logo className="w-12 h-12 drop-shadow-sm" />
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium animate-fade-slide-up delay-200">
-            <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-            <span>Connecting to QueryPilot...</span>
-          </div>
-        </div>
-      </div>
-    );
+    return <ConnectingLoader text="Connecting to QueryPilot..." />;
   }
 
   if (!user) {

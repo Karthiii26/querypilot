@@ -59,18 +59,18 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans antialiased text-slate-100 relative overflow-hidden animate-fade-in">
-      {/* Dynamic Background Glow Orbs */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#f8f9fc] bg-gradient-to-br from-slate-50 via-indigo-50/40 to-slate-100 flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans antialiased text-slate-900 relative overflow-hidden animate-fade-in">
+      {/* Dynamic Light Background Glow Orbs */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-200/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-violet-200/40 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10 animate-scale-in">
         {/* Card Container */}
-        <div className="bg-white/95 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl p-6 sm:p-8 text-slate-900 transition-all duration-300">
+        <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-xl rounded-3xl p-6 sm:p-8 text-slate-900 transition-all duration-300">
           {/* Logo & Header */}
           <div className="flex flex-col items-center text-center space-y-3 mb-6">
-            <div className="p-3 rounded-2xl bg-indigo-50 border border-indigo-100/80 shadow-inner flex items-center justify-center transition-transform hover:scale-105 duration-300">
-              <Logo className="w-10 h-10 shrink-0 drop-shadow-md" />
+            <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-100/80 shadow-xs flex items-center justify-center transition-transform hover:scale-105 duration-300">
+              <Logo className="w-10 h-10 shrink-0 drop-shadow-xs" />
             </div>
             <div>
               <h1 className="text-2xl font-black text-slate-900 tracking-tight">
