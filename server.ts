@@ -127,7 +127,6 @@ async function startServer() {
       }
     } catch (e: any) {
       console.warn('[SyncUserDb] Failed to reconnect user database for user:', user.id, e.message);
-      await authService.updateUserPreferences(user.id, { hasConnectedDb: false });
       await dbService.disconnectUser(user.id);
     }
   }

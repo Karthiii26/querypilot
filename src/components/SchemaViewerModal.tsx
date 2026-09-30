@@ -51,14 +51,16 @@ export const SchemaViewerModal: React.FC<SchemaViewerModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            <button
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
-              <span>Refresh</span>
-            </button>
+            {tables.length === 0 && (
+              <button
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
+                <span>Refresh</span>
+              </button>
+            )}
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"

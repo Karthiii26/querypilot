@@ -94,14 +94,16 @@ export const DatabaseStatusCard: React.FC<DatabaseStatusCardProps> = ({
               <span className="text-slate-400">Total Rows: </span>
               <span className="text-slate-700">{dbStatus?.totalRows || 0}+ rows discovered</span>
             </div>
-            <button
-              onClick={onRefreshSchema}
-              disabled={isRefreshing}
-              className="flex items-center space-x-1 text-indigo-600 hover:text-indigo-800 font-sans text-xs ml-auto"
-            >
-              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
+            {(dbStatus?.tableCount ?? 0) === 0 && (
+              <button
+                onClick={onRefreshSchema}
+                disabled={isRefreshing}
+                className="flex items-center space-x-1 text-indigo-600 hover:text-indigo-800 font-sans text-xs ml-auto"
+              >
+                <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
