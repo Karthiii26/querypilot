@@ -106,6 +106,7 @@ function Dashboard() {
   // Modals state
   const [isSchemaModalOpen, setIsSchemaModalOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [reconnectNotice, setReconnectNotice] = useState<string | null>(null);
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
   const [evaluationReport, setEvaluationReport] = useState<EvaluationMetricReport | null>(null);
   const [isRunningEvaluation, setIsRunningEvaluation] = useState(false);
@@ -137,9 +138,17 @@ function Dashboard() {
       if (res.ok) {
         const data = await res.json();
         setSchema(data);
+        await fetchDatabaseStatus();
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        const errMsg = errJson.error || 'Could not fetch database schema.';
+        setReconnectNotice(`${errMsg} Please enter your database password and connect again.`);
+        setIsConnectModalOpen(true);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Could not load schema:', err);
+      setReconnectNotice(err.message || 'Database connection lost. Please enter your database password to connect again.');
+      setIsConnectModalOpen(true);
     } finally {
       setIsRefreshingSchema(false);
     }
@@ -287,19 +296,16 @@ function Dashboard() {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-300"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="relative w-64 bg-white z-10 shadow-2xl flex flex-col">
-            <div className="p-4 flex items-center justify-between border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <Logo className="w-7 h-7 shrink-0 drop-shadow-xs" />
-                <span className="font-bold text-slate-900 text-base tracking-tight">QueryPilot</span>
-              </div>
+          <div className="relative w-64 bg-white z-10 shadow-2xl flex flex-col h-full animate-slide-in-left">
+            <div className="p-3 flex items-center justify-end border-b border-slate-100 bg-slate-50/50">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                title="Close menu"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -327,7 +333,7 @@ function Dashboard() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-700 shadow-xs cursor-pointer"
+              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-700 shadow-xs cursor-pointer hover:bg-slate-50 transition"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -465,7 +471,11 @@ function Dashboard() {
             <div className="animate-fade-slide-up">
             <SettingsTab
               dbStatus={dbStatus}
-              onOpenConnectModal={() => setIsConnectModalOpen(true)}
+              schema={schema}
+              onOpenConnectModal={() => {
+                setReconnectNotice(null);
+                setIsConnectModalOpen(true);
+              }}
               onRefreshSchema={() => fetchSchema(true)}
               isRefreshing={isRefreshingSchema}
             />
@@ -489,9 +499,16 @@ function Dashboard() {
 
       <ConnectDatabaseModal
         isOpen={isConnectModalOpen}
-        onClose={() => setIsConnectModalOpen(false)}
+        onClose={() => {
+          setIsConnectModalOpen(false);
+          setReconnectNotice(null);
+        }}
         currentConnection={dbStatus?.connectionString || ''}
-        onConnect={handleConnectDb}
+        onConnect={async (params) => {
+          await handleConnectDb(params);
+          setReconnectNotice(null);
+        }}
+        reconnectNotice={reconnectNotice}
       />
 
       <EvaluationSuiteModal

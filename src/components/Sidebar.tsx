@@ -46,10 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="space-y-6">
         {/* Logo and Brand */}
         <div className="flex items-center gap-3 px-2 pt-1">
-          <div className="relative flex items-center justify-center">
-            <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-sm" />
-            <Logo className="w-8 h-8 relative shrink-0 drop-shadow-xs" />
-          </div>
+          <Logo className="w-8 h-8 shrink-0 drop-shadow-sm" />
           <span className="text-xl font-bold bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 bg-clip-text text-transparent tracking-tight">
             QueryPilot
           </span>

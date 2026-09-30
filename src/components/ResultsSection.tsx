@@ -172,7 +172,7 @@ export const ResultsSection: React.FC<ResultsSectionProps> = ({
             Ask any question to execute live queries against your database.
           </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            QueryPilot uses live schema discovery, read-only AST safety validation, and smart visualization selection to deliver instant data insights.
+            Get instant data insights, SQL code, and visual charts directly from your data.
           </p>
         </div>
       </div>

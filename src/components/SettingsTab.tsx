@@ -16,11 +16,12 @@ import {
   KeyRound,
   Zap
 } from 'lucide-react';
-import { DatabaseStatus } from '../types';
+import { DatabaseSchemaInfo, DatabaseStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 interface SettingsTabProps {
   dbStatus: DatabaseStatus | null;
+  schema?: DatabaseSchemaInfo | null;
   onOpenConnectModal: () => void;
   onRefreshSchema: () => void;
   isRefreshing: boolean;
@@ -92,6 +93,7 @@ const InfoRow: React.FC<{
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({
   dbStatus,
+  schema,
   onOpenConnectModal,
   onRefreshSchema,
   isRefreshing
@@ -108,6 +110,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     llmProvider === 'openai' ? 'OpenAI GPT-4o' :
     llmProvider === 'deterministic' ? 'Deterministic (No AI)' :
     llmProvider;
+
+  const tableCount = schema?.tables ? schema.tables.length : (dbStatus?.tableCount ?? 0);
+  const totalRows = schema?.tables
+    ? schema.tables.reduce((acc, t) => acc + (t.rowCount || 0), 0)
+    : (dbStatus?.totalRows ?? 0);
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -184,12 +191,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             <InfoRow
               icon={<Rows3 className="w-3.5 h-3.5" />}
               label="Discovered Tables"
-              value={`${dbStatus?.tableCount ?? 0} tables`}
+              value={`${tableCount} tables`}
             />
             <InfoRow
               icon={<Rows3 className="w-3.5 h-3.5" />}
               label="Total Rows Discovered"
-              value={(dbStatus?.totalRows ?? 0).toLocaleString()}
+              value={totalRows.toLocaleString()}
             />
           </div>
         ) : (

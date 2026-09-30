@@ -20,12 +20,14 @@ interface ConnectDatabaseModalProps {
   connectionType?: DatabaseConnectionType;
   onConnect: (params: { projectUrl: string; password: string }) => Promise<void>;
   onResetToDemo?: () => Promise<void>;
+  reconnectNotice?: string | null;
 }
 
 export const ConnectDatabaseModal: React.FC<ConnectDatabaseModalProps> = ({
   isOpen,
   onClose,
-  onConnect
+  onConnect,
+  reconnectNotice
 }) => {
   const { preferences } = useAuth();
   const [projectUrl, setProjectUrl] = useState(preferences.lastProjectUrl || '');
@@ -90,6 +92,17 @@ export const ConnectDatabaseModal: React.FC<ConnectDatabaseModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 space-y-5 overflow-y-auto">
+
+          {/* Reconnect Prompt Banner */}
+          {reconnectNotice && (
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 shadow-xs">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-bold">Database Re-authentication Required</p>
+                <p className="text-amber-800 text-[11px] leading-relaxed">{reconnectNotice}</p>
+              </div>
+            </div>
+          )}
 
           {/* Connect Form */}
           <form onSubmit={handleSubmit} className="space-y-4">

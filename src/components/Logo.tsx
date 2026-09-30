@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface LogoProps {
   className?: string;
@@ -6,6 +6,11 @@ interface LogoProps {
 }
 
 export const Logo: React.FC<LogoProps> = ({ className = 'w-8 h-8', size }) => {
+  const rawId = useId();
+  const safeId = rawId.replace(/[^a-zA-Z0-9_-]/g, '');
+  const gradId = `qpGrad_${safeId}`;
+  const highlightId = `qpHighlight_${safeId}`;
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -15,52 +20,45 @@ export const Logo: React.FC<LogoProps> = ({ className = 'w-8 h-8', size }) => {
       style={size ? { width: size, height: size } : undefined}
     >
       <defs>
-        <linearGradient id="qpLogoGrad" x1="15%" y1="0%" x2="85%" y2="100%">
-          <stop offset="0%" stopColor="#0ea5e9" />
-          <stop offset="30%" stopColor="#2563eb" />
-          <stop offset="70%" stopColor="#4f46e5" />
+        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#38bdf8" />
+          <stop offset="40%" stopColor="#4f46e5" />
+          <stop offset="80%" stopColor="#6366f1" />
           <stop offset="100%" stopColor="#7c3aed" />
+        </linearGradient>
+        <linearGradient id={highlightId} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.05" />
         </linearGradient>
       </defs>
 
-      {/* Top Cap */}
-      <ellipse cx="256" cy="80" rx="180" ry="58" fill="url(#qpLogoGrad)" />
+      {/* Top Cap Disk */}
+      <ellipse cx="256" cy="120" rx="170" ry="55" fill={`url(#${gradId})`} />
+      <ellipse cx="256" cy="114" rx="150" ry="42" fill={`url(#${highlightId})`} />
 
-      {/* Top Disk Layer */}
+      {/* Disk 1 Cylinder Body */}
       <path
-        d="M 76 80 V 170 C 76 218 156 250 256 250 C 356 250 436 218 436 170 V 80 C 436 124 356 154 256 154 C 156 154 76 124 76 80 Z"
-        fill="url(#qpLogoGrad)"
+        d="M 86 120 V 200 C 86 248 162 278 256 278 C 350 278 426 248 426 200 V 120 C 426 160 350 188 256 188 C 162 188 86 160 86 120 Z"
+        fill={`url(#${gradId})`}
       />
 
-      {/* White Gap / Separator 1 */}
+      {/* Disk 2 Cylinder Body */}
       <path
-        d="M 76 170 C 76 218 156 250 256 250 C 356 250 436 218 436 170"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="20"
-        strokeLinecap="round"
+        d="M 86 220 V 300 C 86 348 162 378 256 378 C 350 378 426 348 426 300 V 220 C 426 260 350 288 256 288 C 162 288 86 260 86 220 Z"
+        fill={`url(#${gradId})`}
+        opacity="0.9"
       />
 
-      {/* Middle Disk Layer */}
+      {/* Disk 3 Base Cylinder Body */}
       <path
-        d="M 76 170 V 290 C 76 338 156 370 256 370 C 356 370 436 338 436 290 V 170 C 436 218 356 250 256 250 C 156 250 76 218 76 170 Z"
-        fill="url(#qpLogoGrad)"
+        d="M 86 320 V 400 C 86 448 162 478 256 478 C 350 478 426 448 426 400 V 320 C 426 360 350 388 256 388 C 162 388 86 360 86 320 Z"
+        fill={`url(#${gradId})`}
+        opacity="0.8"
       />
 
-      {/* White Gap / Separator 2 */}
-      <path
-        d="M 76 290 C 76 338 156 370 256 370 C 356 370 436 338 436 290"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="20"
-        strokeLinecap="round"
-      />
-
-      {/* Bottom Disk Layer */}
-      <path
-        d="M 76 290 V 410 C 76 458 156 490 256 490 C 356 490 436 458 436 410 V 290 C 436 338 356 370 256 370 C 156 370 76 338 76 290 Z"
-        fill="url(#qpLogoGrad)"
-      />
+      {/* Subtle indicator dot */}
+      <circle cx="370" cy="125" r="14" fill="#38bdf8" />
     </svg>
   );
 };
+
