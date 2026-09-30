@@ -4,7 +4,6 @@ import {
   ShieldCheck,
   Cpu,
   CheckCircle2,
-  RefreshCw,
   Sliders,
   Clock,
   Rows3,
@@ -23,8 +22,8 @@ interface SettingsTabProps {
   dbStatus: DatabaseStatus | null;
   schema?: DatabaseSchemaInfo | null;
   onOpenConnectModal: () => void;
-  onRefreshSchema: () => void;
-  isRefreshing: boolean;
+  onRefreshSchema?: () => void;
+  isRefreshing?: boolean;
 }
 
 function extractProjectRef(url: string | null): string | null {
@@ -94,9 +93,7 @@ const InfoRow: React.FC<{
 export const SettingsTab: React.FC<SettingsTabProps> = ({
   dbStatus,
   schema,
-  onOpenConnectModal,
-  onRefreshSchema,
-  isRefreshing
+  onOpenConnectModal
 }) => {
   const { preferences } = useAuth();
   const hasConnectedDb = preferences.hasConnectedDb;
@@ -139,17 +136,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge connected={hasConnectedDb} />
-            {hasConnectedDb && (
-              <button
-                type="button"
-                onClick={onRefreshSchema}
-                disabled={isRefreshing}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-600' : ''}`} />
-                <span className="hidden sm:inline">{isRefreshing ? 'Refreshing…' : 'Refresh'}</span>
-              </button>
-            )}
             <button
               type="button"
               onClick={onOpenConnectModal}

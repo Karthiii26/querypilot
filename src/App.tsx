@@ -182,35 +182,44 @@ function Dashboard() {
    */
   const fetchSchemaWithRetry = async (attempt: number) => {
     setIsRefreshingSchema(true);
-    setSchemaRetryCount(attempt >= 0 ? attempt + 1 : 1);
+    const currentAttempt = attempt >= 0 ? attempt + 1 : 1;
+    setSchemaRetryCount(currentAttempt);
+
     try {
       const force = attempt >= 0; // always force on auto-retry
       const res = await apiFetch(`/api/schema?refresh=${force}`, {}, token);
+      let data: DatabaseSchemaInfo | null = null;
       if (res.ok) {
-        const data = await res.json();
+        data = await res.json().catch(() => null);
+      }
+
+      // Check if schema has tables populated
+      if (data && Array.isArray(data.tables) && data.tables.length > 0) {
         setSchema(data);
         setSchemaRetryCount(0);
         setIsRefreshingSchema(false);
         await fetchDatabaseStatus();
-        return; // success — stop retrying
+        return; // Success — stop retrying!
       }
 
-      const errJson = await res.json().catch(() => ({}));
-      const errMsg = errJson.error || 'Could not fetch schema.';
+      // If schema tables empty or API failed
+      const errJson = !res.ok ? await res.json().catch(() => ({})) : {};
+      const errMsg = errJson.error || 'Schema tables not found yet.';
 
       if (attempt >= 0 && attempt < MAX_SCHEMA_RETRIES - 1) {
-        console.warn(`[Schema] Attempt ${attempt + 1} failed, retrying in ${SCHEMA_RETRY_DELAY_MS}ms…`, errMsg);
+        console.warn(`[Schema] Attempt ${currentAttempt} returned empty schema. Retrying in ${SCHEMA_RETRY_DELAY_MS}ms…`, errMsg);
         schemaRetryTimerRef.current = setTimeout(() => fetchSchemaWithRetry(attempt + 1), SCHEMA_RETRY_DELAY_MS);
       } else {
-        // All retries exhausted — prompt for password
+        // All 5 retries exhausted without getting tables
         setIsRefreshingSchema(false);
-        setReconnectNotice(`${errMsg} Please enter your database password to reconnect.`);
+        if (data) setSchema(data);
+        setReconnectNotice('Unable to retrieve database tables automatically after multiple attempts. Please enter your database password to reconnect.');
         setIsConnectModalOpen(true);
       }
     } catch (err: any) {
       const msg = err.message || 'Database connection lost.';
       if (attempt >= 0 && attempt < MAX_SCHEMA_RETRIES - 1) {
-        console.warn(`[Schema] Attempt ${attempt + 1} error, retrying…`, msg);
+        console.warn(`[Schema] Attempt ${currentAttempt} error. Retrying…`, msg);
         schemaRetryTimerRef.current = setTimeout(() => fetchSchemaWithRetry(attempt + 1), SCHEMA_RETRY_DELAY_MS);
       } else {
         setIsRefreshingSchema(false);
