@@ -190,14 +190,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         ) : (
           <div className="bg-slate-50 border border-slate-200/70 rounded-xl p-4 text-center space-y-2">
             <p className="text-xs text-slate-600 font-medium">
-              No database connected yet. Connect your Supabase project URL &amp; password to view live table details.
+              No database connected yet. Connect your database to view schema details.
             </p>
             <button
               type="button"
               onClick={onOpenConnectModal}
               className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition cursor-pointer"
             >
-              <Zap className="w-3.5 h-3.5" /> Connect Supabase Project
+              <Zap className="w-3.5 h-3.5" /> Connect Database
             </button>
           </div>
         )}

@@ -84,12 +84,12 @@ export const OnboardingConnectModal: React.FC<OnboardingConnectModalProps> = ({
             </div>
 
             <h2 className="text-xl font-bold text-white leading-snug">
-              {connected ? '🎉 Connected!' : `Welcome, ${firstName}!`}
+              {connected ? 'Connected!' : `Welcome, ${firstName}!`}
             </h2>
             <p className="text-indigo-200 text-xs mt-1 leading-relaxed">
               {connected
                 ? 'Your database is connected. Taking you to the dashboard…'
-                : 'Connect your Supabase database to start querying it in plain English.'}
+                : 'Connect your database to start querying it in plain English.'}
             </p>
 
             {/* Sparkle decoration */}
@@ -114,17 +114,17 @@ export const OnboardingConnectModal: React.FC<OnboardingConnectModalProps> = ({
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold text-slate-700">
                     <Globe className="w-3.5 h-3.5 inline mr-1 text-slate-400" />
-                    Supabase Project URL or ID
+                    Database Host / Project URL
                   </label>
                   <input
                     type="text"
-                    placeholder="https://xyzabcdef.supabase.co or xyzabcdef"
+                    placeholder="https://yourproject.supabase.co or project-id"
                     value={projectUrl}
                     onChange={(e) => setProjectUrl(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs font-mono border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-500 text-slate-800 bg-slate-50 transition"
                   />
                   <p className="text-[11px] text-slate-400">
-                    Found in your Supabase Dashboard → Project Settings → API.
+                    Found in your database dashboard settings.
                   </p>
                 </div>
 
@@ -194,7 +194,7 @@ export const OnboardingConnectModal: React.FC<OnboardingConnectModalProps> = ({
             {/* Footer note */}
             {!connected && (
               <p className="text-center text-[11px] text-slate-400">
-                Region is auto-detected. You can change databases anytime from Settings.
+                You can change databases anytime from Settings.
               </p>
             )}
           </div>

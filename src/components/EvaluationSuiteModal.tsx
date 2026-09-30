@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Play,
@@ -55,9 +56,9 @@ export const EvaluationSuiteModal: React.FC<EvaluationSuiteModalProps> = ({
     return true;
   });
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden animate-scale-in-bounce">
         {/* Modal Header */}
         <div className="p-4 sm:px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center space-x-3">
@@ -281,6 +282,7 @@ export const EvaluationSuiteModal: React.FC<EvaluationSuiteModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -110,6 +110,20 @@ function Dashboard() {
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
   const [evaluationReport, setEvaluationReport] = useState<EvaluationMetricReport | null>(null);
   const [isRunningEvaluation, setIsRunningEvaluation] = useState(false);
+  const [showConnectButton, setShowConnectButton] = useState(false);
+
+  // Delay appearance of "Connect Database" button by 1s when no DB is connected
+  useEffect(() => {
+    if (!preferences.hasConnectedDb) {
+      setShowConnectButton(false);
+      const timer = setTimeout(() => {
+        setShowConnectButton(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowConnectButton(false);
+    }
+  }, [preferences.hasConnectedDb, authUser?.id]);
 
   // Initial load and user change reset
   useEffect(() => {
@@ -125,11 +139,8 @@ function Dashboard() {
     } else {
       setIsRefreshingSchema(false);
       setSchema(null);
-
-      // Newly registered or logged-in user with no DB connected -> prompt to connect DB cleanly
+      // New login without DB: header indicator is always visible, no modal pop
       if (isNewLogin) {
-        setReconnectNotice(null);
-        setIsConnectModalOpen(true);
         resetNewLogin();
       }
     }
@@ -459,7 +470,27 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="hidden md:block" />
+          {/* DB connect indicator — slides in from sidebar (left to right) after 1s delay */}
+          {!preferences.hasConnectedDb && showConnectButton ? (
+            <button
+              type="button"
+              onClick={() => {
+                setReconnectNotice(null);
+                setIsConnectModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-white border border-indigo-200/90 hover:border-indigo-400 text-xs font-semibold text-indigo-700 hover:text-indigo-900 shadow-xs hover:shadow-md transition-all cursor-pointer group animate-slide-from-left shrink-0"
+            >
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+              </span>
+              <Database className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Connect Database</span>
+              <span className="sm:hidden">Connect DB</span>
+            </button>
+          ) : (
+            <div className="hidden md:block" />
+          )}
         </header>
 
         {/* Dynamic Tab Body */}
@@ -528,21 +559,23 @@ function Dashboard() {
                 </p>
               </div>
 
-              {/* Explore Your Data — dynamic live table cards from Supabase */}
-              <ExploreYourData
-                schema={schema}
-                isRefreshing={isRefreshingSchema}
-                schemaRetryCount={schemaRetryCount}
-                onSelectQuestion={handleSelectExample}
-                onOpenConnectModal={(reauth?: boolean) => {
-                  if (reauth) {
-                    setReconnectNotice('Please enter your database password to reconnect.');
-                  } else {
-                    setReconnectNotice(null);
-                  }
-                  setIsConnectModalOpen(true);
-                }}
-              />
+              {/* Explore Your Data — only shown when a database is connected */}
+              {preferences.hasConnectedDb && (
+                <ExploreYourData
+                  schema={schema}
+                  isRefreshing={isRefreshingSchema}
+                  schemaRetryCount={schemaRetryCount}
+                  onSelectQuestion={handleSelectExample}
+                  onOpenConnectModal={(reauth?: boolean) => {
+                    if (reauth) {
+                      setReconnectNotice('Unable to fetch schema. Please re-enter your database password.');
+                    } else {
+                      setReconnectNotice(null);
+                    }
+                    setIsConnectModalOpen(true);
+                  }}
+                />
+              )}
 
               {/* Clarification Disambiguation Card */}
               {currentResponse && currentResponse.understanding.ambiguity && (

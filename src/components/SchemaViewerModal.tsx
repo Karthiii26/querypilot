@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Search, Database, Key, Link as LinkIcon, RefreshCw, Layers } from 'lucide-react';
 import { DatabaseSchemaInfo, TableSchema } from '../types';
 
@@ -30,9 +31,9 @@ export const SchemaViewerModal: React.FC<SchemaViewerModalProps> = ({
 
   const activeTable = tables.find(t => t.table === (selectedTable || tables[0]?.table));
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-scale-in-bounce">
         {/* Modal Header */}
         <div className="p-4 sm:px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center space-x-3">
@@ -70,7 +71,7 @@ export const SchemaViewerModal: React.FC<SchemaViewerModalProps> = ({
         {/* Modal Body */}
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Table List Sidebar */}
-          <div className="w-full md:w-72 border-r border-slate-200 flex flex-col bg-slate-50/50">
+          <div className="w-full md:w-72 border-b md:border-b-0 md:border-r border-slate-200 flex flex-col bg-slate-50/50 max-h-48 md:max-h-none shrink-0">
             <div className="p-3 border-b border-slate-200">
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
@@ -204,6 +205,7 @@ export const SchemaViewerModal: React.FC<SchemaViewerModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
