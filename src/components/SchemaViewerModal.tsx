@@ -197,6 +197,14 @@ export const SchemaViewerModal: React.FC<SchemaViewerModalProps> = ({
                   </div>
                 )}
               </div>
+            ) : tables.length === 0 ? (
+              <div className="p-12 text-center space-y-2">
+                <Database className="w-8 h-8 text-indigo-400 mx-auto" />
+                <p className="text-sm font-semibold text-slate-700">No tables found in this database</p>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  Your cloud database has no tables yet. Create tables in your cloud console, then click Refresh.
+                </p>
+              </div>
             ) : (
               <div className="p-8 text-center text-xs text-slate-400">
                 Select a table from the sidebar to inspect its structure.

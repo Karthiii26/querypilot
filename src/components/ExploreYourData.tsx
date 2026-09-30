@@ -20,6 +20,7 @@ interface ExploreYourDataProps {
   schemaRetryCount?: number;
   onSelectQuestion: (question: string) => void;
   onOpenConnectModal: (reauth?: boolean) => void;
+  onRefreshSchema?: () => void;
 }
 
 const PALETTE = [
@@ -69,6 +70,7 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
   isRefreshing,
   onSelectQuestion,
   onOpenConnectModal,
+  onRefreshSchema,
 }) => {
   const { preferences } = useAuth();
   const hasConnectedDb = preferences.hasConnectedDb;
@@ -126,8 +128,39 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
     );
   }
 
-  // 3. Connected but schema empty / failed automatic tries
-  if (!schema || schema.tables.length === 0) {
+  // 3. Connected with 0 tables in cloud DB
+  if (schema && schema.tables.length === 0) {
+    return (
+      <div className="space-y-3 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-800">Explore your data</h3>
+            <p className="text-xs text-slate-500">Browse the data available in your connected database.</p>
+          </div>
+        </div>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-7 text-center shadow-xs space-y-3">
+          <div className="mx-auto w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <Layers className="w-5 h-5" />
+          </div>
+          <h4 className="text-sm font-bold text-slate-800">Database connected (0 tables found)</h4>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Your database is connected successfully, but contains no tables yet. Create tables in your cloud database console and refresh to start querying.
+          </p>
+          {onRefreshSchema && (
+            <button
+              type="button"
+              onClick={onRefreshSchema}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer shadow-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh Schema
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!schema) {
     return (
       <div className="space-y-3 animate-fade-in">
         <div className="flex items-center justify-between">
@@ -140,16 +173,16 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
           <div className="mx-auto w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
             <Layers className="w-5 h-5" />
           </div>
-          <h4 className="text-sm font-bold text-slate-800">Unable to fetch schema automatically</h4>
+          <h4 className="text-sm font-bold text-slate-800">Unable to fetch schema</h4>
           <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-            Automatic attempts to fetch your database schema were unsuccessful. Please reconnect with your database password.
+            Could not fetch database schema automatically. Please reconnect with your database password.
           </p>
           <button
             type="button"
             onClick={() => onOpenConnectModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer shadow-xs"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Enter Password & Reconnect
+            <RefreshCw className="w-3.5 h-3.5" /> Reconnect Database
           </button>
         </div>
       </div>

@@ -225,27 +225,26 @@ function Dashboard() {
         data = await res.json().catch(() => null);
       }
 
-      // Check if schema has tables populated
-      if (data && Array.isArray(data.tables) && data.tables.length > 0) {
+      // Check if schema fetch succeeded
+      if (res.ok && data) {
         setSchema(data);
         setSchemaRetryCount(0);
         setIsRefreshingSchema(false);
         await fetchDatabaseStatus();
-        return; // Success — stop retrying!
+        return; // Success — DB is connected (even if 0 tables currently exist in cloud)
       }
 
-      // If schema tables empty or API failed
+      // API failed or returned invalid response
       const errJson = !res.ok ? await res.json().catch(() => ({})) : {};
-      const errMsg = errJson.error || 'Schema tables not found yet.';
+      const errMsg = errJson.error || 'Could not fetch database schema.';
 
       if (attempt >= 0 && attempt < MAX_SCHEMA_RETRIES - 1) {
-        console.warn(`[Schema] Attempt ${currentAttempt} returned empty schema. Retrying in ${SCHEMA_RETRY_DELAY_MS}ms…`, errMsg);
+        console.warn(`[Schema] Attempt ${currentAttempt} error. Retrying in ${SCHEMA_RETRY_DELAY_MS}ms…`, errMsg);
         schemaRetryTimerRef.current = setTimeout(() => fetchSchemaWithRetry(attempt + 1), SCHEMA_RETRY_DELAY_MS);
       } else {
         // All retries exhausted on a connected DB (re-authentication needed)
         setIsRefreshingSchema(false);
-        if (data) setSchema(data);
-        setReconnectNotice('Unable to retrieve database tables automatically after multiple attempts. Please enter your database password to reconnect.');
+        setReconnectNotice('Unable to retrieve database tables. Please enter your database password to reconnect.');
         setIsConnectModalOpen(true);
       }
     } catch (err: any) {
@@ -574,6 +573,7 @@ function Dashboard() {
                     }
                     setIsConnectModalOpen(true);
                   }}
+                  onRefreshSchema={() => fetchSchema(true)}
                 />
               )}
 
@@ -628,6 +628,7 @@ function Dashboard() {
                 }
                 setIsConnectModalOpen(true);
               }}
+              onRefreshSchema={() => fetchSchema(true)}
             />
           </div>
           )}

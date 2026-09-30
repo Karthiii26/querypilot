@@ -17,6 +17,7 @@ interface DatabaseTabProps {
   schemaRetryCount?: number;
   onSelectQuestion: (q: string) => void;
   onOpenConnectModal?: (reauth?: boolean) => void;
+  onRefreshSchema?: () => void;
 }
 
 export const DatabaseTab: React.FC<DatabaseTabProps> = ({
@@ -24,7 +25,8 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
   isRefreshing,
   schemaRetryCount = 0,
   onSelectQuestion,
-  onOpenConnectModal
+  onOpenConnectModal,
+  onRefreshSchema
 }) => {
   const { preferences } = useAuth();
   const hasConnectedDb = preferences.hasConnectedDb;
@@ -91,17 +93,39 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
             Connecting to database and discovering table structures. Please wait...
           </p>
         </div>
-      ) : (!schema || schema.tables.length === 0) ? (
-        /* Connected but empty / automatic retries exhausted */
+      ) : (schema && schema.tables.length === 0) ? (
+        /* Connected DB but 0 tables exist in cloud */
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-8 text-center shadow-xs space-y-3">
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <Database className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">
+            Database Connected (0 Tables Found)
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Your cloud database is connected successfully, but contains no tables yet. Once you create tables in your cloud database console, click Refresh Schema to browse them.
+          </p>
+          {onRefreshSchema && (
+            <button
+              type="button"
+              onClick={onRefreshSchema}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer shadow-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh Schema
+            </button>
+          )}
+        </div>
+      ) : !schema ? (
+        /* Schema fetch failed / authentication needed */
         <div className="bg-white border border-slate-200/80 rounded-2xl p-8 text-center shadow-xs space-y-3">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
             <Database className="w-6 h-6" />
           </div>
           <h3 className="text-base font-bold text-slate-900">
-            Unable to fetch schema automatically
+            Unable to fetch schema
           </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            Automatic schema discovery could not retrieve tables. Please enter your database password to reconnect.
+            Could not retrieve tables from your database automatically. Please enter your database password to reconnect.
           </p>
           {onOpenConnectModal && (
             <button
@@ -109,7 +133,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
               onClick={() => onOpenConnectModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer shadow-xs"
             >
-              <RefreshCw className="w-3.5 h-3.5" /> Enter Password & Reconnect
+              <RefreshCw className="w-3.5 h-3.5" /> Reconnect Database
             </button>
           )}
         </div>
