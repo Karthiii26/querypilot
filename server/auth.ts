@@ -124,10 +124,10 @@ export class AuthService {
           role VARCHAR(50) DEFAULT 'user',
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
           last_login_at TIMESTAMP WITH TIME ZONE
-        );
+        )
       `);
 
-      // Ensure user_preferences table exists in Supabase Admin DB
+      // Ensure user_preferences table exists — each statement is its own query() call
       await this.query(`
         CREATE TABLE IF NOT EXISTS user_preferences (
           user_id INT PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,
@@ -136,36 +136,40 @@ export class AuthService {
           last_db_password TEXT,
           last_email TEXT,
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-        ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS last_db_password TEXT;
-      `);
-
-      // Ensure query_history table exists in Supabase Admin DB
-      await this.query(`
-        CREATE TABLE IF NOT EXISTS query_history (
-          id SERIAL PRIMARY KEY,
-          user_id INT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
-          request_id TEXT,
-          question TEXT NOT NULL,
-          generated_sql TEXT,
-          query_intent TEXT,
-          execution_success BOOLEAN DEFAULT FALSE,
-          row_count INT DEFAULT 0,
-          execution_time_ms INT DEFAULT 0,
-          error_message TEXT,
-          full_response JSONB,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )
       `);
-      await this.query(`
-        CREATE INDEX IF NOT EXISTS idx_query_history_user_id ON query_history(user_id)
-      `);
-      await this.query(`
-        CREATE INDEX IF NOT EXISTS idx_query_history_created_at ON query_history(user_id, created_at DESC)
-      `);
+      await this.query(`ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS last_db_password TEXT`);
+
+      // Ensure query_history table exists.
+      // Uses ALTER TABLE ADD COLUMN IF NOT EXISTS for every column so that existing
+      // tables created by earlier deploys (which may be missing columns) are patched.
+      try {
+        await this.query(`
+          CREATE TABLE IF NOT EXISTS query_history (
+            id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+            question TEXT NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          )
+        `);
+        // Patch any columns missing from earlier deploys
+        await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS request_id TEXT`);
+        await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS generated_sql TEXT`);
+        await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS query_intent TEXT`);
+        await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS execution_success BOOLEAN DEFAULT FALSE`);
+        await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS row_count INT DEFAULT 0`);
+        await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS execution_time_ms INT DEFAULT 0`);
+        await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS error_message TEXT`);
+        await this.query(`ALTER TABLE query_history ADD COLUMN IF NOT EXISTS full_response JSONB`);
+        await this.query(`CREATE INDEX IF NOT EXISTS idx_query_history_user_id ON query_history(user_id)`);
+        await this.query(`CREATE INDEX IF NOT EXISTS idx_query_history_created_at ON query_history(user_id, created_at DESC)`);
+        console.log('[AuthService] query_history table ready.');
+      } catch (histErr: any) {
+        console.warn('[AuthService] query_history setup warning (non-fatal):', histErr.message);
+      }
 
       // Seed default demo user if app_users is empty
-      const countRes = await this.query('SELECT COUNT(*) AS count FROM app_users;');
+      const countRes = await this.query('SELECT COUNT(*) AS count FROM app_users');
       const count = parseInt(countRes.rows[0]?.count || '0', 10);
       if (count === 0) {
         await this.seedDemoUser();
