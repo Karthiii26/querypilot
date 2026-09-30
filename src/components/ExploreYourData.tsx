@@ -7,7 +7,9 @@ import {
   Layers,
   Plug,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 import { DatabaseSchemaInfo } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -21,12 +23,12 @@ interface ExploreYourDataProps {
 }
 
 const PALETTE = [
-  { bg: 'bg-indigo-50', text: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
-  { bg: 'bg-emerald-50', text: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
-  { bg: 'bg-violet-50', text: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
-  { bg: 'bg-amber-50', text: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' },
-  { bg: 'bg-sky-50', text: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
-  { bg: 'bg-rose-50', text: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  { bg: 'bg-indigo-50', text: 'text-indigo-600', badge: 'bg-indigo-100/80 text-indigo-700', border: 'hover:border-indigo-300' },
+  { bg: 'bg-emerald-50', text: 'text-emerald-600', badge: 'bg-emerald-100/80 text-emerald-700', border: 'hover:border-emerald-300' },
+  { bg: 'bg-violet-50', text: 'text-violet-600', badge: 'bg-violet-100/80 text-violet-700', border: 'hover:border-violet-300' },
+  { bg: 'bg-amber-50', text: 'text-amber-600', badge: 'bg-amber-100/80 text-amber-700', border: 'hover:border-amber-300' },
+  { bg: 'bg-sky-50', text: 'text-sky-600', badge: 'bg-sky-100/80 text-sky-700', border: 'hover:border-sky-300' },
+  { bg: 'bg-rose-50', text: 'text-rose-600', badge: 'bg-rose-100/80 text-rose-700', border: 'hover:border-rose-300' },
 ];
 
 function toLabel(tableName: string): string {
@@ -65,7 +67,6 @@ function suggestionsForTable(tableName: string, columns: string[]): string[] {
 export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
   schema,
   isRefreshing,
-  schemaRetryCount = 0,
   onSelectQuestion,
   onOpenConnectModal,
 }) => {
@@ -75,7 +76,7 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
   // 1. Actively fetching / retrying state
   if (isRefreshing) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 animate-fade-in">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Explore your data</h3>
           <p className="text-xs text-slate-500">Browse the data available in your connected database.</p>
@@ -87,9 +88,7 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-slate-900">Fetching data from database...</h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-              {schemaRetryCount > 0
-                ? `Automatically syncing schema from your database (Attempt ${schemaRetryCount} of 5)...`
-                : 'Connecting to database and discovering table schemas...'}
+              Connecting to database and discovering table schemas. Please wait...
             </p>
           </div>
         </div>
@@ -100,7 +99,7 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
   // 2. No database connected at all
   if (!hasConnectedDb) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-800">Explore your data</h3>
@@ -130,7 +129,7 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
   // 3. Connected but schema empty / failed automatic tries
   if (!schema || schema.tables.length === 0) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-800">Explore your data</h3>
@@ -159,13 +158,19 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
 
   const topTables = [...schema.tables].sort((a, b) => (b.rowCount ?? 0) - (a.rowCount ?? 0)).slice(0, 6);
 
-  // 4. Active Tables view
+  // 4. Active Tables view with Entrance Animations & Transitions
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 animate-fade-slide-up">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-slate-800">Explore your data</h3>
-          <p className="text-xs text-slate-500">Browse the data available in your connected database.</p>
+          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            Explore your data
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 animate-scale-in">
+              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+              {schema.tables.length} tables discovered
+            </span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">Browse the data available in your connected database.</p>
         </div>
       </div>
 
@@ -176,13 +181,18 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
           const suggestions = suggestionsForTable(tbl.table, columnNames);
 
           return (
-            <div key={tbl.table} className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col gap-3 hover:shadow-md hover:border-slate-300 transition-all duration-200">
+            <div
+              key={tbl.table}
+              style={{ animationDelay: `${idx * 75}ms` }}
+              className={`group bg-white border border-slate-200/80 rounded-xl p-4 shadow-xs flex flex-col gap-3 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg ${palette.border} animate-fade-slide-up`}
+            >
+              {/* Card Header */}
               <div className="flex items-center gap-3">
-                <div className={`h-9 w-9 rounded-lg ${palette.bg} ${palette.text} flex items-center justify-center shrink-0`}>
+                <div className={`h-9 w-9 rounded-lg ${palette.bg} ${palette.text} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200 shadow-xs`}>
                   <Database className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-slate-900 truncate font-mono">{tbl.table}</p>
+                  <p className="text-xs font-bold text-slate-900 truncate font-mono group-hover:text-indigo-600 transition-colors">{tbl.table}</p>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${palette.badge}`}>
                       <Hash className="w-2.5 h-2.5" />{(tbl.rowCount ?? 0).toLocaleString()} rows
@@ -194,6 +204,7 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
                 </div>
               </div>
 
+              {/* Suggestions list */}
               <div className="space-y-1.5">
                 {suggestions.map((q, qIdx) => (
                   <button
@@ -201,10 +212,10 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
                     id={`explore-${tbl.table}-q${qIdx}`}
                     type="button"
                     onClick={() => onSelectQuestion(q)}
-                    className="w-full text-left flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50/80 hover:bg-indigo-50 hover:text-indigo-800 border border-transparent hover:border-indigo-200 transition-all text-xs font-medium text-slate-600 group cursor-pointer"
+                    className="w-full text-left flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50/80 hover:bg-indigo-50 hover:text-indigo-800 border border-transparent hover:border-indigo-200 transition-all duration-200 text-xs font-medium text-slate-600 cursor-pointer"
                   >
                     <span className="leading-snug line-clamp-2">{q}</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-500 shrink-0 group-hover:translate-x-1 transition-transform duration-200" />
                   </button>
                 ))}
               </div>
@@ -214,7 +225,7 @@ export const ExploreYourData: React.FC<ExploreYourDataProps> = ({
       </div>
 
       {schema.tables.length > 6 && (
-        <p className="text-[11px] text-center text-slate-400 font-medium pt-1">
+        <p className="text-[11px] text-center text-slate-400 font-medium pt-1 animate-fade-in">
           Showing top 6 of {schema.tables.length} tables by row count &middot; Open <span className="text-indigo-500 font-semibold">Database Explorer</span> to browse all tables
         </p>
       )}

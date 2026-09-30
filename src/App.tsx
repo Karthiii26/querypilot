@@ -172,7 +172,7 @@ function Dashboard() {
     }
   };
 
-  const MAX_SCHEMA_RETRIES = 5;
+  const MAX_SCHEMA_RETRIES = 12;
   const SCHEMA_RETRY_DELAY_MS = 2000;
 
   /**

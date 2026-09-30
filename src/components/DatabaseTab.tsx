@@ -55,7 +55,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
         {isRefreshing && (
           <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3.5 py-2 rounded-xl shadow-xs">
             <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-            <span>Fetching data from DB... {schemaRetryCount > 0 ? `(Attempt ${schemaRetryCount}/5)` : ''}</span>
+            <span>Fetching data from Database...</span>
           </div>
         )}
       </div>
@@ -88,9 +88,7 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto" />
           <h3 className="text-base font-bold text-slate-900">Fetching data from database...</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-            {schemaRetryCount > 0
-              ? `Automatically retrying database schema discovery (Attempt ${schemaRetryCount} of 5)...`
-              : 'Connecting to database and discovering table structures...'}
+            Connecting to database and discovering table structures. Please wait...
           </p>
         </div>
       ) : (!schema || schema.tables.length === 0) ? (
