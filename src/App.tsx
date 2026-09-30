@@ -173,16 +173,16 @@ function Dashboard() {
   };
 
   const MAX_SCHEMA_RETRIES = 5;
-  const SCHEMA_RETRY_DELAY_MS = 2500;
+  const SCHEMA_RETRY_DELAY_MS = 2000;
 
   /**
    * Fetches schema with automatic retry on login.
    * On first load (attempt 0..MAX_SCHEMA_RETRIES-1) retries silently.
    * Only prompts for password after all retries are exhausted.
-   * Can also be called manually (attempt = -1) for a forced one-shot refresh.
    */
   const fetchSchemaWithRetry = async (attempt: number) => {
     setIsRefreshingSchema(true);
+    setSchemaRetryCount(attempt >= 0 ? attempt + 1 : 1);
     try {
       const force = attempt >= 0; // always force on auto-retry
       const res = await apiFetch(`/api/schema?refresh=${force}`, {}, token);
@@ -190,6 +190,7 @@ function Dashboard() {
         const data = await res.json();
         setSchema(data);
         setSchemaRetryCount(0);
+        setIsRefreshingSchema(false);
         await fetchDatabaseStatus();
         return; // success — stop retrying
       }
@@ -198,27 +199,24 @@ function Dashboard() {
       const errMsg = errJson.error || 'Could not fetch schema.';
 
       if (attempt >= 0 && attempt < MAX_SCHEMA_RETRIES - 1) {
-        // Silent retry
         console.warn(`[Schema] Attempt ${attempt + 1} failed, retrying in ${SCHEMA_RETRY_DELAY_MS}ms…`, errMsg);
-        setSchemaRetryCount(attempt + 1);
         schemaRetryTimerRef.current = setTimeout(() => fetchSchemaWithRetry(attempt + 1), SCHEMA_RETRY_DELAY_MS);
       } else {
         // All retries exhausted — prompt for password
-        setReconnectNotice(`${errMsg} Please enter your database password and connect again.`);
+        setIsRefreshingSchema(false);
+        setReconnectNotice(`${errMsg} Please enter your database password to reconnect.`);
         setIsConnectModalOpen(true);
       }
     } catch (err: any) {
       const msg = err.message || 'Database connection lost.';
       if (attempt >= 0 && attempt < MAX_SCHEMA_RETRIES - 1) {
         console.warn(`[Schema] Attempt ${attempt + 1} error, retrying…`, msg);
-        setSchemaRetryCount(attempt + 1);
         schemaRetryTimerRef.current = setTimeout(() => fetchSchemaWithRetry(attempt + 1), SCHEMA_RETRY_DELAY_MS);
       } else {
+        setIsRefreshingSchema(false);
         setReconnectNotice(`${msg} Please enter your database password to connect again.`);
         setIsConnectModalOpen(true);
       }
-    } finally {
-      setIsRefreshingSchema(false);
     }
   };
 
@@ -491,8 +489,12 @@ function Dashboard() {
               <ExploreYourData
                 schema={schema}
                 isRefreshing={isRefreshingSchema}
+                schemaRetryCount={schemaRetryCount}
                 onSelectQuestion={handleSelectExample}
-                onRefreshSchema={() => fetchSchema(true)}
+                onOpenConnectModal={() => {
+                  setReconnectNotice('Please enter your database password to connect.');
+                  setIsConnectModalOpen(true);
+                }}
               />
 
               {/* Clarification Disambiguation Card */}
@@ -535,9 +537,13 @@ function Dashboard() {
             <div className="animate-fade-slide-up">
             <DatabaseTab
               schema={schema}
-              onRefresh={() => fetchSchema(true)}
               isRefreshing={isRefreshingSchema}
+              schemaRetryCount={schemaRetryCount}
               onSelectQuestion={handleSelectExample}
+              onOpenConnectModal={() => {
+                setReconnectNotice('Please enter your database password to connect.');
+                setIsConnectModalOpen(true);
+              }}
             />
           </div>
           )}

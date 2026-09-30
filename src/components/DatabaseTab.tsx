@@ -5,7 +5,8 @@ import {
   Search,
   Table as TableIcon,
   ChevronRight,
-  Plug
+  Plug,
+  RefreshCw
 } from 'lucide-react';
 import { DatabaseSchemaInfo } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -13,14 +14,17 @@ import { useAuth } from '../context/AuthContext';
 interface DatabaseTabProps {
   schema: DatabaseSchemaInfo | null;
   isRefreshing: boolean;
-  onRefresh: () => void;
+  schemaRetryCount?: number;
   onSelectQuestion: (q: string) => void;
+  onOpenConnectModal?: () => void;
 }
 
 export const DatabaseTab: React.FC<DatabaseTabProps> = ({
   schema,
   isRefreshing,
-  onSelectQuestion
+  schemaRetryCount = 0,
+  onSelectQuestion,
+  onOpenConnectModal
 }) => {
   const { preferences } = useAuth();
   const hasConnectedDb = preferences.hasConnectedDb;
@@ -47,11 +51,11 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
             Browse tables, inspect column schemas, and run quick queries on your connected database.
           </p>
         </div>
-        {/* Auto-fetch spinner — shown while loading, no manual refresh needed */}
+        {/* Auto-fetch spinner — shown while loading */}
         {isRefreshing && (
-          <div className="flex items-center gap-2 text-xs font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            Fetching schema…
+          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3.5 py-2 rounded-xl shadow-xs">
+            <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+            <span>Fetching data from DB... {schemaRetryCount > 0 ? `(Attempt ${schemaRetryCount}/5)` : ''}</span>
           </div>
         )}
       </div>
@@ -65,32 +69,51 @@ export const DatabaseTab: React.FC<DatabaseTabProps> = ({
           <div>
             <h3 className="text-base font-bold text-slate-900">No database connected</h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed mt-1">
-              Please navigate to the <span className="font-semibold text-indigo-600">Settings</span> tab to connect your Supabase database.
+              Please click below or go to <span className="font-semibold text-indigo-600">Settings</span> to connect your database.
             </p>
           </div>
+          {onOpenConnectModal && (
+            <button
+              type="button"
+              onClick={onOpenConnectModal}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer"
+            >
+              <Plug className="w-3.5 h-3.5" /> Connect Database
+            </button>
+          )}
         </div>
       ) : isRefreshing && !schema ? (
-        /* Actively loading — show a pleasant skeleton state */
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-10 text-center shadow-xs space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto" />
-          <p className="text-sm font-medium text-slate-600">Connecting to your database…</p>
-          <p className="text-xs text-slate-400">This may take a moment on first load.</p>
+        /* Actively loading — show dynamic fetching state */
+        <div className="bg-gradient-to-br from-indigo-50/40 via-white to-purple-50/20 border border-indigo-100 rounded-2xl p-10 text-center shadow-xs space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto" />
+          <h3 className="text-base font-bold text-slate-900">Fetching data from database...</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+            {schemaRetryCount > 0
+              ? `Automatically retrying database schema discovery (Attempt ${schemaRetryCount} of 5)...`
+              : 'Connecting to database and discovering table structures...'}
+          </p>
         </div>
       ) : (!schema || schema.tables.length === 0) ? (
-        /* Connected but empty / still loading */
+        /* Connected but empty / automatic retries exhausted */
         <div className="bg-white border border-slate-200/80 rounded-2xl p-8 text-center shadow-xs space-y-3">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
             <Database className="w-6 h-6" />
           </div>
           <h3 className="text-base font-bold text-slate-900">
-            {isRefreshing ? 'Loading schema…' : 'No tables found'}
+            Unable to fetch schema automatically
           </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-            {isRefreshing
-              ? 'Fetching your database schema. This usually takes just a few seconds.'
-              : 'No tables were found in your database. Create a table in Supabase — the schema will be fetched automatically.'}
+            Automatic schema discovery could not retrieve tables. Please enter your database password to reconnect.
           </p>
-          {isRefreshing && <Loader2 className="w-5 h-5 animate-spin text-indigo-500 mx-auto" />}
+          {onOpenConnectModal && (
+            <button
+              type="button"
+              onClick={onOpenConnectModal}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition cursor-pointer shadow-xs"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Enter Password & Reconnect
+            </button>
+          )}
         </div>
       ) : (
         /* Tables Explorer */
