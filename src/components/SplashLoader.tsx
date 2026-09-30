@@ -5,29 +5,42 @@ import { getApiUrl } from '../api';
 
 interface SplashLoaderProps {
   onReady: () => void;
+  statusText?: string;
 }
 
-export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
-  const [statusText, setStatusText] = useState('Starting QueryPilot…');
+export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady, statusText: customStatusText }) => {
+  const [internalStatusText, setInternalStatusText] = useState('Connecting to QueryPilot…');
   const [hasError, setHasError] = useState(false);
   const [attemptCount, setAttemptCount] = useState(0);
   const isCheckingRef = useRef(false);
   const startTimeRef = useRef(Date.now());
+  const minDisplayMs = 2500; // Always show for at least 2.5s
+  const isReadyRef = useRef(false); // backend responded
+  const minElapsedRef = useRef(false); // 2.5s elapsed
+  const onReadyCalledRef = useRef(false);
+
+  // 2.5s minimum display — once elapsed, if backend already ready, fire onReady
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      minElapsedRef.current = true;
+      if (isReadyRef.current && !onReadyCalledRef.current) {
+        onReadyCalledRef.current = true;
+        onReady();
+      }
+    }, minDisplayMs);
+    return () => clearTimeout(timer);
+  }, [onReady]);
 
   const checkHealth = useCallback(async () => {
     if (isCheckingRef.current) return;
     isCheckingRef.current = true;
 
-    const healthUrl = getApiUrl('/api/health');
-
-    // Log URL on first attempt so devtools show exactly where we're polling
     if (attemptCount === 0) {
-      console.log(`[QueryPilot Splash] Polling backend health at: ${healthUrl || '(relative) /api/health'}`);
+      console.log(`[QueryPilot Splash] Polling backend health at: ${getApiUrl('/api/health') || '(relative) /api/health'}`);
     }
 
     try {
       const controller = new AbortController();
-      // Allow up to 20 seconds per check so queued requests during Render cold starts are not prematurely aborted
       const timeoutId = setTimeout(() => controller.abort(), 20000);
 
       const res = await fetch(getApiUrl('/api/health'), {
@@ -40,7 +53,12 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
       if (res.ok) {
         const data = await res.json();
         if (data.status === 'ok' || data.ready === true) {
-          onReady();
+          isReadyRef.current = true;
+          // Only call onReady if minimum display time has also elapsed
+          if (minElapsedRef.current && !onReadyCalledRef.current) {
+            onReadyCalledRef.current = true;
+            onReady();
+          }
           return;
         }
       }
@@ -57,13 +75,13 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
     const timer = setInterval(() => {
       const elapsedSec = Math.floor((Date.now() - startTimeRef.current) / 1000);
       if (elapsedSec < 5) {
-        setStatusText('Starting QueryPilot…');
+        setInternalStatusText('Connecting to QueryPilot…');
       } else if (elapsedSec < 15) {
-        setStatusText('Connecting to services…');
+        setInternalStatusText('Connecting to services…');
       } else if (elapsedSec < 30) {
-        setStatusText('Preparing your workspace…');
+        setInternalStatusText('Preparing your workspace…');
       } else if (elapsedSec <= 120 && !hasError) {
-        setStatusText('Almost ready…');
+        setInternalStatusText('Almost ready…');
       } else if (elapsedSec > 120 && !hasError) {
         setHasError(true);
       }
@@ -88,14 +106,16 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
 
   const handleRetry = () => {
     setHasError(false);
-    setStatusText('Starting QueryPilot…');
+    setInternalStatusText('Connecting to QueryPilot…');
     startTimeRef.current = Date.now();
     setAttemptCount(0);
     checkHealth();
   };
 
+  const displayText = customStatusText || internalStatusText;
+
   return (
-    <div className="min-h-screen bg-[#f8f9fc] flex flex-col items-center justify-center p-6 text-slate-900 font-sans antialiased animate-fade-in select-none">
+    <div className="fixed inset-0 bg-[#f8f9fc] flex flex-col items-center justify-center p-6 text-slate-900 font-sans antialiased animate-fade-in select-none overflow-hidden">
       <div className="w-full max-w-sm flex flex-col items-center text-center space-y-6">
         {/* Brand Logo with ambient glow */}
         <div className="relative flex items-center justify-center">
@@ -124,7 +144,7 @@ export const SplashLoader: React.FC<SplashLoaderProps> = ({ onReady }) => {
             {/* Subtle status text */}
             <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-500">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600 shrink-0" />
-              <span>{statusText}</span>
+              <span>{displayText}</span>
             </div>
           </div>
         ) : (

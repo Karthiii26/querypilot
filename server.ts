@@ -400,6 +400,93 @@ async function startServer() {
     }
   });
 
+  // ==========================================
+  // QUERY HISTORY API
+  // ==========================================
+
+  // GET /api/history — fetch last 100 history items for user
+  app.get('/api/history', async (req, res) => {
+    try {
+      const token = getAuthToken(req);
+      if (!token) return res.status(401).json({ error: 'Unauthorized' });
+      const verified = authService.verifyToken(token);
+      if (!verified) return res.status(401).json({ error: 'Unauthorized' });
+
+      const result = await authService.query(
+        `SELECT full_response, created_at FROM query_history
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 100`,
+        [verified.userId]
+      );
+
+      const history = result.rows
+        .map((r: any) => r.full_response)
+        .filter(Boolean);
+
+      res.json({ history });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/history — save a query result entry
+  app.post('/api/history', async (req, res) => {
+    try {
+      const token = getAuthToken(req);
+      if (!token) return res.status(401).json({ error: 'Unauthorized' });
+      const verified = authService.verifyToken(token);
+      if (!verified) return res.status(401).json({ error: 'Unauthorized' });
+
+      const entry = req.body;
+      if (!entry || !entry.question) {
+        return res.status(400).json({ error: 'Invalid history entry' });
+      }
+
+      await authService.query(
+        `INSERT INTO query_history
+           (user_id, request_id, question, generated_sql, query_intent,
+            execution_success, row_count, execution_time_ms, error_message, full_response)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          verified.userId,
+          entry.requestId || null,
+          entry.question,
+          entry.generatedSql || null,
+          entry.queryIntent || null,
+          entry.execution?.success ?? false,
+          entry.execution?.rowCount ?? 0,
+          entry.execution?.executionTimeMs ?? 0,
+          entry.execution?.error || null,
+          JSON.stringify(entry)
+        ]
+      );
+
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // DELETE /api/history — clear all history for user
+  app.delete('/api/history', async (req, res) => {
+    try {
+      const token = getAuthToken(req);
+      if (!token) return res.status(401).json({ error: 'Unauthorized' });
+      const verified = authService.verifyToken(token);
+      if (!verified) return res.status(401).json({ error: 'Unauthorized' });
+
+      await authService.query(
+        'DELETE FROM query_history WHERE user_id = $1',
+        [verified.userId]
+      );
+
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Evaluation Suite: Get test queries
   app.get('/api/evaluation/tests', (req, res) => {
     res.json({

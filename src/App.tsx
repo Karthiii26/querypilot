@@ -33,81 +33,11 @@ import {
   QueryPipelineResponse
 } from './types';
 
-const ConnectingLoader: React.FC<{ text?: string }> = ({ text = 'Connecting to QueryPilot...' }) => (
-  <div className="min-h-screen bg-[#f8f9fc] bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100 flex flex-col items-center justify-center p-6 text-slate-900 font-sans antialiased animate-fade-in select-none">
-    <div className="flex flex-col items-center gap-5 text-center">
-      <div className="relative flex items-center justify-center">
-        <div className="absolute inset-0 bg-indigo-500/15 rounded-full blur-xl animate-pulse" />
-        <Logo className="w-16 h-16 relative drop-shadow-sm transition-transform duration-500" />
-      </div>
-      <div className="space-y-1">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">QueryPilot</h1>
-        <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-500 pt-1">
-          <Loader2 className="w-4 h-4 animate-spin text-indigo-600 shrink-0" />
-          <span>{text}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
 export default function App() {
-  const [initStage, setInitStage] = useState<'checking' | 'connecting' | 'splash' | 'ready'>('checking');
+  const [isBackendReady, setIsBackendReady] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    const checkServerHealth = async () => {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-
-        const res = await fetch(getApiUrl('/api/health'), {
-          cache: 'no-store',
-          signal: controller.signal,
-          credentials: 'include'
-        });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'ok' || data.ready === true) {
-            if (!isMounted) return;
-            setInitStage('connecting');
-            setTimeout(() => {
-              if (isMounted) setInitStage('ready');
-            }, 2000);
-            return;
-          }
-        }
-      } catch {
-        // Fallback to splash loader if server cold starting
-      }
-
-      if (isMounted) {
-        setInitStage('splash');
-      }
-    };
-
-    checkServerHealth();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const handleSplashReady = () => {
-    setInitStage('connecting');
-    setTimeout(() => {
-      setInitStage('ready');
-    }, 2000);
-  };
-
-  if (initStage === 'checking' || initStage === 'connecting') {
-    return <ConnectingLoader text="Connecting to QueryPilot..." />;
-  }
-
-  if (initStage === 'splash') {
-    return <SplashLoader onReady={handleSplashReady} />;
+  if (!isBackendReady) {
+    return <SplashLoader onReady={() => setIsBackendReady(true)} />;
   }
 
   return (
@@ -120,8 +50,18 @@ export default function App() {
 function AppContent() {
   const { user, isLoading: isAuthLoading } = useAuth();
 
+  // While auth session is restoring (< 1s), show a simple branded fade
+  // to avoid a flash of the login page before the redirect happens.
   if (isAuthLoading) {
-    return <ConnectingLoader text="Connecting to QueryPilot..." />;
+    return (
+      <div className="min-h-screen bg-[#f8f9fc] flex flex-col items-center justify-center gap-3 animate-fade-in select-none">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl animate-pulse" />
+          <Logo className="w-16 h-16 relative drop-shadow-sm" />
+        </div>
+        <p className="text-xs font-medium text-slate-500">Signing you in…</p>
+      </div>
+    );
   }
 
   if (!user) {
@@ -175,7 +115,40 @@ function Dashboard() {
     setCurrentResponse(null);
     fetchDatabaseStatus();
     fetchSchema(true);
+    fetchHistory();
   }, [authUser?.id]);
+
+  const fetchHistory = async () => {
+    try {
+      const res = await apiFetch('/api/history', {}, token);
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data.history || []);
+      }
+    } catch (err) {
+      console.warn('Could not load history:', err);
+    }
+  };
+
+  const saveHistoryEntry = async (entry: QueryPipelineResponse) => {
+    try {
+      await apiFetch('/api/history', {
+        method: 'POST',
+        body: JSON.stringify(entry)
+      }, token);
+    } catch (err) {
+      console.warn('Could not save history entry:', err);
+    }
+  };
+
+  const clearHistory = async () => {
+    setHistory([]);
+    try {
+      await apiFetch('/api/history', { method: 'DELETE' }, token);
+    } catch (err) {
+      console.warn('Could not clear history:', err);
+    }
+  };
 
   const fetchDatabaseStatus = async () => {
     try {
@@ -233,6 +206,7 @@ function Dashboard() {
       setCurrentResponse(responseData);
       setHistory((prev) => [responseData, ...prev]);
       setRelativeTime('Just now');
+      saveHistoryEntry(responseData);
     } catch (err: any) {
       console.error('Query execution error:', err);
       const errorResponse: QueryPipelineResponse = {
@@ -267,6 +241,7 @@ function Dashboard() {
       setCurrentResponse(errorResponse);
       setHistory((prev) => [errorResponse, ...prev]);
       setRelativeTime('Just now');
+      saveHistoryEntry(errorResponse);
     } finally {
       setIsLoading(false);
     }
@@ -509,7 +484,7 @@ function Dashboard() {
                 setInputQuestion(item.question);
                 setActiveTab('ask');
               }}
-              onClearHistory={() => setHistory([])}
+              onClearHistory={clearHistory}
             />
           </div>
           )}

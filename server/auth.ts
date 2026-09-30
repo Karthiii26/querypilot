@@ -140,6 +140,26 @@ export class AuthService {
         ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS last_db_password TEXT;
       `);
 
+      // Ensure query_history table exists in Supabase Admin DB
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS query_history (
+          id SERIAL PRIMARY KEY,
+          user_id INT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+          request_id TEXT,
+          question TEXT NOT NULL,
+          generated_sql TEXT,
+          query_intent TEXT,
+          execution_success BOOLEAN DEFAULT FALSE,
+          row_count INT DEFAULT 0,
+          execution_time_ms INT DEFAULT 0,
+          error_message TEXT,
+          full_response JSONB,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_query_history_user_id ON query_history(user_id);
+        CREATE INDEX IF NOT EXISTS idx_query_history_created_at ON query_history(user_id, created_at DESC);
+      `);
+
       // Seed default demo user if app_users is empty
       const countRes = await this.query('SELECT COUNT(*) AS count FROM app_users;');
       const count = parseInt(countRes.rows[0]?.count || '0', 10);

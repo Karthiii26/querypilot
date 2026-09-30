@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clock, Play, ArrowRight, Database, CheckCircle2, AlertCircle, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Clock, ArrowRight, CheckCircle2, AlertCircle, MessageSquare, Trash2, AlertTriangle } from 'lucide-react';
 import { QueryPipelineResponse } from '../types';
 
 interface HistoryTabProps {
@@ -13,6 +13,29 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   onSelectQuery,
   onClearHistory
 }) => {
+  const [confirmClear, setConfirmClear] = useState(false);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-reset the confirm state after 4s if the user doesn't follow through
+  useEffect(() => {
+    if (confirmClear) {
+      confirmTimerRef.current = setTimeout(() => setConfirmClear(false), 4000);
+    }
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    };
+  }, [confirmClear]);
+
+  const handleClearClick = () => {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      return;
+    }
+    // Second click — confirmed
+    setConfirmClear(false);
+    onClearHistory();
+  };
+
   if (history.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center max-w-xl mx-auto space-y-3">
@@ -33,16 +56,31 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">Query History</h2>
           <p className="text-sm text-slate-500">
-            {history.length} {history.length === 1 ? 'item' : 'items'} in session history
+          {history.length} {history.length === 1 ? 'query' : 'queries'} saved
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onClearHistory}
-          className="text-xs font-semibold text-slate-500 hover:text-rose-600 transition"
-        >
-          Clear History
-        </button>
+
+        {/* Two-step confirm delete */}
+        <div className="flex items-center gap-2">
+          {confirmClear && (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 animate-fade-in">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              This permanently deletes all history. Click again to confirm.
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleClearClick}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+              confirmClear
+                ? 'text-white bg-rose-600 border-rose-600 hover:bg-rose-700'
+                : 'text-slate-500 border-slate-200 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50'
+            }`}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            {confirmClear ? 'Yes, delete all' : 'Clear History'}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">
